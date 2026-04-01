@@ -47,6 +47,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        habit: {
+          complete: "hsl(var(--habit-complete))",
+          incomplete: "hsl(var(--habit-incomplete))",
+        },
+        streak: "hsl(var(--streak-glow))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

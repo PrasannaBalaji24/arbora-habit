@@ -4,35 +4,38 @@
 
 @layer base {
   :root {
-    --background: 40 33% 97%;
-    --foreground: 150 10% 15%;
+    --background: 30 30% 97%;
+    --foreground: 20 10% 12%;
 
-    --card: 40 33% 99%;
-    --card-foreground: 150 10% 15%;
+    --card: 30 30% 99%;
+    --card-foreground: 20 10% 12%;
 
-    --popover: 40 33% 99%;
-    --popover-foreground: 150 10% 15%;
+    --popover: 30 30% 99%;
+    --popover-foreground: 20 10% 12%;
 
-    --primary: 152 35% 45%;
-    --primary-foreground: 40 33% 99%;
+    --primary: 25 95% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 25% 92%;
-    --secondary-foreground: 150 10% 25%;
+    --secondary: 30 25% 92%;
+    --secondary-foreground: 20 10% 25%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 150 5% 50%;
+    --muted: 30 20% 94%;
+    --muted-foreground: 20 5% 50%;
 
-    --accent: 35 60% 60%;
-    --accent-foreground: 40 33% 99%;
+    --accent: 15 90% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 65% 55%;
-    --destructive-foreground: 40 33% 99%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 40 15% 88%;
-    --input: 40 15% 88%;
-    --ring: 152 35% 45%;
+    --border: 30 15% 88%;
+    --input: 30 15% 88%;
+    --ring: 25 95% 55%;
 
     --radius: 0.75rem;
+
+    --gradient-start: 35 95% 60%;
+    --gradient-end: 15 90% 50%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -43,31 +46,33 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --habit-complete: 152 45% 50%;
-    --habit-incomplete: 40 15% 88%;
-    --streak-glow: 35 80% 55%;
+    --habit-complete: 25 90% 55%;
+    --habit-incomplete: 30 15% 88%;
+    --streak-glow: 25 95% 55%;
   }
 
   .dark {
-    --background: 150 10% 8%;
-    --foreground: 40 33% 95%;
-    --card: 150 10% 11%;
-    --card-foreground: 40 33% 95%;
-    --popover: 150 10% 11%;
-    --popover-foreground: 40 33% 95%;
-    --primary: 152 40% 50%;
-    --primary-foreground: 150 10% 8%;
-    --secondary: 150 10% 15%;
-    --secondary-foreground: 40 33% 90%;
-    --muted: 150 10% 15%;
-    --muted-foreground: 40 10% 55%;
-    --accent: 35 60% 55%;
-    --accent-foreground: 150 10% 8%;
+    --background: 20 10% 8%;
+    --foreground: 30 30% 95%;
+    --card: 20 10% 11%;
+    --card-foreground: 30 30% 95%;
+    --popover: 20 10% 11%;
+    --popover-foreground: 30 30% 95%;
+    --primary: 25 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 10% 15%;
+    --secondary-foreground: 30 30% 90%;
+    --muted: 20 10% 15%;
+    --muted-foreground: 30 10% 55%;
+    --accent: 15 90% 50%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 40 33% 95%;
-    --border: 150 10% 18%;
-    --input: 150 10% 18%;
-    --ring: 152 40% 50%;
+    --destructive-foreground: 30 30% 95%;
+    --border: 20 10% 18%;
+    --input: 20 10% 18%;
+    --ring: 25 95% 55%;
+    --gradient-start: 35 95% 55%;
+    --gradient-end: 15 85% 45%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -76,9 +81,9 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --habit-complete: 152 45% 45%;
-    --habit-incomplete: 150 10% 20%;
-    --streak-glow: 35 70% 50%;
+    --habit-complete: 25 90% 50%;
+    --habit-incomplete: 20 10% 20%;
+    --streak-glow: 25 90% 55%;
   }
 }
 
@@ -103,5 +108,35 @@
   .streak-glow {
     color: hsl(var(--streak-glow));
     text-shadow: 0 0 12px hsl(var(--streak-glow) / 0.3);
+  }
+  .btn-glossy {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--gradient-start)) 0%,
+      hsl(var(--primary)) 40%,
+      hsl(var(--gradient-end)) 100%
+    );
+    box-shadow:
+      inset 0 1px 1px hsl(0 0% 100% / 0.35),
+      0 4px 12px hsl(var(--primary) / 0.4);
+    text-shadow: 0 1px 2px hsl(0 0% 0% / 0.15);
+  }
+  .btn-glossy:hover {
+    box-shadow:
+      inset 0 1px 1px hsl(0 0% 100% / 0.45),
+      0 6px 18px hsl(var(--primary) / 0.5);
+  }
+  .btn-glossy:active {
+    box-shadow:
+      inset 0 2px 4px hsl(0 0% 0% / 0.15),
+      0 2px 6px hsl(var(--primary) / 0.3);
+  }
+  .gradient-header {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--gradient-start)) 0%,
+      hsl(var(--primary)) 50%,
+      hsl(var(--gradient-end)) 100%
+    );
   }
 }

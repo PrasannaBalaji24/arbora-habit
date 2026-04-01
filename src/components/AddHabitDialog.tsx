@@ -32,7 +32,7 @@ export default function AddHabitDialog({ onAdd }: AddHabitDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="rounded-full gap-2 shadow-md px-6">
+        <Button size="lg" className="btn-glossy rounded-full gap-2 shadow-md px-6 border-0">
           <Plus className="w-5 h-5" />
           New Habit
         </Button>
@@ -64,7 +64,7 @@ export default function AddHabitDialog({ onAdd }: AddHabitDialogProps) {
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             autoFocus
           />
-          <Button onClick={handleSubmit} className="w-full" disabled={!name.trim()}>
+          <Button onClick={handleSubmit} className="w-full btn-glossy border-0" disabled={!name.trim()}>
             Add Habit
           </Button>
         </div>

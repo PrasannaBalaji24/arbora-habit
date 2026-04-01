@@ -5,13 +5,18 @@ export interface Habit {
   createdAt: string;
 }
 
+export interface HabitDayDetail {
+  completed: boolean;
+  description: string;
+}
+
 export interface DayEntry {
   notes: string;
-  completedHabits: string[]; // habit IDs
+  habits: { [habitId: string]: HabitDayDetail };
 }
 
 export interface HabitLog {
-  [habitId: string]: string[]; // kept for backward compat / streak calc
+  [habitId: string]: string[]; // dates completed - kept for streak calc
 }
 
 export interface DayLogs {
@@ -69,17 +74,6 @@ export function addDays(dateStr: string, n: number): string {
   return d.toISOString().split("T")[0];
 }
 
-export function getWeekDates(): string[] {
-  const today = new Date();
-  const dates: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]);
-  }
-  return dates;
-}
-
 export function getStreak(habitId: string, logs: HabitLog): number {
   const completedDates = logs[habitId] || [];
   if (completedDates.length === 0) return 0;
@@ -104,9 +98,4 @@ export function getStreak(habitId: string, logs: HabitLog): number {
     }
   }
   return streak;
-}
-
-export function getDayLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString("en", { weekday: "short" }).charAt(0);
 }

@@ -3,16 +3,32 @@ export interface Habit {
   name: string;
   emoji: string;
   createdAt: string;
+  goalMinutes?: number; // daily goal in minutes
 }
 
 export interface HabitDayDetail {
   completed: boolean;
   description: string;
+  timeSpent: number; // minutes
+}
+
+export interface TimeBlock {
+  id: string;
+  startTime: string; // "06:00"
+  endTime: string;   // "07:00"
+  description: string;
+}
+
+export interface WastedTimeEntry {
+  category: string;
+  minutes: number;
 }
 
 export interface DayEntry {
   notes: string;
   habits: { [habitId: string]: HabitDayDetail };
+  timeBlocks: TimeBlock[];
+  wastedTime: WastedTimeEntry[];
 }
 
 export interface HabitLog {
@@ -26,6 +42,34 @@ export interface DayLogs {
 const HABITS_KEY = "habits-tracker-habits";
 const LOGS_KEY = "habits-tracker-logs";
 const DAY_LOGS_KEY = "habits-tracker-day-logs";
+
+export const WASTED_CATEGORIES = [
+  "Social Media",
+  "Lying down / Lazy",
+  "Random browsing",
+  "Gaming",
+  "Overthinking",
+  "Other",
+];
+
+export const DEFAULT_TIME_BLOCKS: Omit<TimeBlock, "id">[] = [
+  { startTime: "06:00", endTime: "07:00", description: "" },
+  { startTime: "07:00", endTime: "08:00", description: "" },
+  { startTime: "08:00", endTime: "09:00", description: "" },
+  { startTime: "09:00", endTime: "10:00", description: "" },
+  { startTime: "10:00", endTime: "11:00", description: "" },
+  { startTime: "11:00", endTime: "12:00", description: "" },
+  { startTime: "12:00", endTime: "13:00", description: "" },
+  { startTime: "13:00", endTime: "14:00", description: "" },
+  { startTime: "14:00", endTime: "15:00", description: "" },
+  { startTime: "15:00", endTime: "16:00", description: "" },
+  { startTime: "16:00", endTime: "17:00", description: "" },
+  { startTime: "17:00", endTime: "18:00", description: "" },
+  { startTime: "18:00", endTime: "19:00", description: "" },
+  { startTime: "19:00", endTime: "20:00", description: "" },
+  { startTime: "20:00", endTime: "21:00", description: "" },
+  { startTime: "21:00", endTime: "22:00", description: "" },
+];
 
 export function getHabits(): Habit[] {
   const raw = localStorage.getItem(HABITS_KEY);
@@ -98,4 +142,74 @@ export function getStreak(habitId: string, logs: HabitLog): number {
     }
   }
   return streak;
+}
+
+export function formatMinutes(mins: number): string {
+  if (mins <= 0) return "0m";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+export function formatTimeLabel(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour12}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
+export function getEmptyDayEntry(): DayEntry {
+  return {
+    notes: "",
+    habits: {},
+    timeBlocks: DEFAULT_TIME_BLOCKS.map((tb) => ({ ...tb, id: crypto.randomUUID() })),
+    wastedTime: [],
+  };
+}
+
+export function getDayEntry(dayLogs: DayLogs, dateStr: string): DayEntry {
+  return dayLogs[dateStr] || getEmptyDayEntry();
+}
+
+// Aggregation helpers
+export function getWeekDates(referenceDate: string): string[] {
+  const d = new Date(referenceDate + "T12:00:00");
+  const dayOfWeek = d.getDay();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    dates.push(date.toISOString().split("T")[0]);
+  }
+  return dates;
+}
+
+export function getMonthDates(referenceDate: string): string[] {
+  const d = new Date(referenceDate + "T12:00:00");
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const dates: string[] = [];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let i = 1; i <= daysInMonth; i++) {
+    dates.push(`${year}-${(month + 1).toString().padStart(2, "0")}-${i.toString().padStart(2, "0")}`);
+  }
+  return dates;
+}
+
+export function getDayTotalHabitTime(dayEntry: DayEntry): number {
+  return Object.values(dayEntry.habits).reduce((sum, h) => sum + (h.timeSpent || 0), 0);
+}
+
+export function getDayTotalWastedTime(dayEntry: DayEntry): number {
+  return (dayEntry.wastedTime || []).reduce((sum, w) => sum + w.minutes, 0);
+}
+
+export function getDayCompletionRate(dayEntry: DayEntry, totalHabits: number): number {
+  if (totalHabits === 0) return 0;
+  const completed = Object.values(dayEntry.habits).filter((h) => h.completed).length;
+  return Math.round((completed / totalHabits) * 100);
 }

@@ -244,11 +244,23 @@ export default function Index() {
                       <span className={`font-medium text-sm flex-1 ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
                         {habit.name}
                       </span>
-                      {detail.timeSpent > 0 && (
-                        <span className="text-xs font-bold streak-glow flex items-center gap-1">
+                      {detail.timeSpent > 0 ? (
+                        <button
+                          onClick={() => openTimePrompt(habit.id)}
+                          className="text-xs font-bold streak-glow flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+                          title="Click to update time spent"
+                        >
                           {formatMinutes(detail.timeSpent)} 🔥
-                        </span>
-                      )}
+                        </button>
+                      ) : detail.completed ? (
+                        <button
+                          onClick={() => openTimePrompt(habit.id)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                          title="Click to log time spent"
+                        >
+                          + Log time
+                        </button>
+                      ) : null}
                       {streak > 0 && (
                         <div className="flex items-center gap-1 streak-glow">
                           <Flame className="w-3.5 h-3.5" />

@@ -94,19 +94,44 @@ export default function Index() {
     updateLogs({ ...logs, [habitId]: updatedDates });
   };
 
+  const autoFillTimeBlocks = (entry: typeof dayEntry, habitName: string, emoji: string, minutes: number) => {
+    if (minutes <= 0) return entry.timeBlocks;
+    const blocks = [...(entry.timeBlocks || [])];
+    let remaining = minutes;
+    for (let i = 0; i < blocks.length && remaining > 0; i++) {
+      if (!blocks[i].description) {
+        blocks[i] = { ...blocks[i], description: `${emoji} ${habitName}` };
+        remaining -= 60;
+      }
+    }
+    return blocks;
+  };
+
   const handleTimeSubmit = (minutes: number) => {
     if (timeModal) {
       const current = getDayDetail(timeModal.habitId);
+      const habit = habits.find((h) => h.id === timeModal.habitId);
+      const updatedBlocks = minutes > 0 && habit
+        ? autoFillTimeBlocks(dayEntry, habit.name, habit.emoji, minutes)
+        : dayEntry.timeBlocks;
       const updated = {
         ...dayEntry,
         habits: {
           ...dayEntry.habits,
           [timeModal.habitId]: { ...current, timeSpent: minutes },
         },
+        timeBlocks: updatedBlocks,
       };
       updateDayLogs({ ...dayLogs, [selectedDate]: updated });
     }
     setTimeModal(null);
+  };
+
+  const openTimePrompt = (habitId: string) => {
+    const habit = habits.find((h) => h.id === habitId);
+    if (habit) {
+      setTimeModal({ habitId, habitName: habit.name });
+    }
   };
 
   const updateDescription = (habitId: string, description: string) => {
@@ -219,11 +244,23 @@ export default function Index() {
                       <span className={`font-medium text-sm flex-1 ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
                         {habit.name}
                       </span>
-                      {detail.timeSpent > 0 && (
-                        <span className="text-xs font-bold streak-glow flex items-center gap-1">
+                      {detail.timeSpent > 0 ? (
+                        <button
+                          onClick={() => openTimePrompt(habit.id)}
+                          className="text-xs font-bold streak-glow flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+                          title="Click to update time spent"
+                        >
                           {formatMinutes(detail.timeSpent)} 🔥
-                        </span>
-                      )}
+                        </button>
+                      ) : detail.completed ? (
+                        <button
+                          onClick={() => openTimePrompt(habit.id)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                          title="Click to log time spent"
+                        >
+                          + Log time
+                        </button>
+                      ) : null}
                       {streak > 0 && (
                         <div className="flex items-center gap-1 streak-glow">
                           <Flame className="w-3.5 h-3.5" />

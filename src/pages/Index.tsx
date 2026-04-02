@@ -11,16 +11,21 @@ import {
   saveLogs,
   getDayLogs,
   saveDayLogs,
+  getDayEntry,
   todayStr,
   formatDate,
   addDays,
   getStreak,
+  formatMinutes,
 } from "@/lib/habits";
 import AddHabitDialog from "@/components/AddHabitDialog";
+import TimeSpentModal from "@/components/TimeSpentModal";
+import TimeBlockSection from "@/components/TimeBlockSection";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Index() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -28,6 +33,7 @@ export default function Index() {
   const [dayLogs, setDayLogs] = useState<DayLogs>({});
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [notes, setNotes] = useState("");
+  const [timeModal, setTimeModal] = useState<{ habitId: string; habitName: string } | null>(null);
 
   useEffect(() => {
     setHabits(getHabits());
@@ -35,9 +41,10 @@ export default function Index() {
     setDayLogs(getDayLogs());
   }, []);
 
-  // Sync notes when date changes
+  const dayEntry = getDayEntry(dayLogs, selectedDate);
+
   useEffect(() => {
-    setNotes(dayLogs[selectedDate]?.notes || "");
+    setNotes(dayEntry.notes || "");
   }, [selectedDate, dayLogs]);
 
   const updateHabits = useCallback((h: Habit[]) => {
@@ -56,23 +63,28 @@ export default function Index() {
   }, []);
 
   const getDayDetail = (habitId: string): HabitDayDetail => {
-    return dayLogs[selectedDate]?.habits?.[habitId] || { completed: false, description: "" };
+    return dayEntry.habits?.[habitId] || { completed: false, description: "", timeSpent: 0 };
   };
 
   const toggleHabit = (habitId: string) => {
     const current = getDayDetail(habitId);
     const newCompleted = !current.completed;
 
+    if (newCompleted) {
+      // Show time modal
+      const habit = habits.find((h) => h.id === habitId);
+      setTimeModal({ habitId, habitName: habit?.name || "" });
+    }
+
     // Update dayLogs
-    const entry = dayLogs[selectedDate] || { notes: "", habits: {} };
-    const updatedEntry = {
-      ...entry,
+    const updated = {
+      ...dayEntry,
       habits: {
-        ...entry.habits,
+        ...dayEntry.habits,
         [habitId]: { ...current, completed: newCompleted },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updatedEntry });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
 
     // Update logs for streak calc
     const dates = logs[habitId] || [];
@@ -82,17 +94,31 @@ export default function Index() {
     updateLogs({ ...logs, [habitId]: updatedDates });
   };
 
+  const handleTimeSubmit = (minutes: number) => {
+    if (timeModal) {
+      const current = getDayDetail(timeModal.habitId);
+      const updated = {
+        ...dayEntry,
+        habits: {
+          ...dayEntry.habits,
+          [timeModal.habitId]: { ...current, timeSpent: minutes },
+        },
+      };
+      updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+    }
+    setTimeModal(null);
+  };
+
   const updateDescription = (habitId: string, description: string) => {
     const current = getDayDetail(habitId);
-    const entry = dayLogs[selectedDate] || { notes: "", habits: {} };
-    const updatedEntry = {
-      ...entry,
+    const updated = {
+      ...dayEntry,
       habits: {
-        ...entry.habits,
+        ...dayEntry.habits,
         [habitId]: { ...current, description },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updatedEntry });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
   };
 
   const addHabit = (name: string, emoji: string) => {
@@ -113,8 +139,11 @@ export default function Index() {
   };
 
   const saveNotes = () => {
-    const entry = dayLogs[selectedDate] || { notes: "", habits: {} };
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...entry, notes } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, notes } });
+  };
+
+  const updateTimeBlocks = (blocks: typeof dayEntry.timeBlocks) => {
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } });
   };
 
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));
@@ -127,171 +156,159 @@ export default function Index() {
   const total = habits.length;
 
   return (
-    <div className="min-h-screen bg-background flex items-start justify-center py-8 px-4">
-      <div className="w-full max-w-2xl hero-container hero-container-glow rounded-2xl overflow-hidden">
-        {/* Header */}
-        <div className="gradient-header text-primary-foreground py-5 px-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={goToPrevDay}
-              className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div className="text-center">
-              <h1 className="text-xl font-bold tracking-wide">{dateInfo.weekday}</h1>
-              <p className="text-sm opacity-80">
-                {dateInfo.month} {dateInfo.day}, {dateInfo.year}
-              </p>
-            </div>
-            <button
-              onClick={goToNextDay}
-              className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+    <div className="w-full max-w-3xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="gradient-header text-primary-foreground py-5 px-6 rounded-xl mb-6">
+        <div className="flex items-center justify-between">
+          <button onClick={goToPrevDay} className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center">
+            <h1 className="text-xl font-bold tracking-wide">{dateInfo.weekday}</h1>
+            <p className="text-sm opacity-80">{dateInfo.month} {dateInfo.day}, {dateInfo.year}</p>
           </div>
-
-          {!isToday && (
-            <div className="text-center mt-2">
-              <button
-                onClick={goToToday}
-                className="inline-flex items-center gap-1 text-xs opacity-80 hover:opacity-100 transition-opacity underline"
-              >
-                <CalendarDays className="w-3 h-3" /> Back to today
-              </button>
-            </div>
-          )}
-
-          {/* Progress bar */}
-          {total > 0 && (
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex-1 h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary-foreground rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${(completedToday / total) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm font-bold">
-                {completedToday}/{total}
-              </span>
-              {completedToday === total && total > 0 && (
-                <span className="text-sm animate-bounce">🎉</span>
-              )}
-            </div>
-          )}
+          <button onClick={goToNextDay} className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Habits Table */}
-        <div className="p-6">
+        {!isToday && (
+          <div className="text-center mt-2">
+            <button onClick={goToToday} className="inline-flex items-center gap-1 text-xs opacity-80 hover:opacity-100 transition-opacity underline">
+              <CalendarDays className="w-3 h-3" /> Back to today
+            </button>
+          </div>
+        )}
+
+        {total > 0 && (
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1 h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary-foreground rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${(completedToday / total) * 100}%` }}
+              />
+            </div>
+            <span className="text-sm font-bold">{completedToday}/{total}</span>
+            {completedToday === total && total > 0 && <span className="text-sm animate-bounce">🎉</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Habits Card */}
+      <Card className="border-border bg-card mb-4">
+        <CardContent className="p-6">
           {habits.length > 0 ? (
-            <table className="w-full table-hero">
-              <thead>
-                <tr>
-                  <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-3 w-10">
-                    ✓
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-3">
-                    Habit
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-3">
-                    Description
-                  </th>
-                  <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-3 w-16">
-                    🔥
-                  </th>
-                  <th className="pb-3 w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {habits.map((habit) => {
-                  const detail = getDayDetail(habit.id);
-                  const streak = getStreak(habit.id, logs);
-                  return (
-                    <tr
-                      key={habit.id}
-                      className={`transition-colors ${detail.completed ? "bg-primary/5" : ""}`}
-                    >
-                      <td className="py-3 pr-2">
-                        <Checkbox
-                          checked={detail.completed}
-                          onCheckedChange={() => toggleHabit(habit.id)}
-                          className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                      </td>
-                      <td className="py-3 pr-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{habit.emoji}</span>
-                          <span
-                            className={`font-medium text-sm ${
-                              detail.completed ? "text-primary line-through opacity-80" : "text-foreground"
-                            }`}
-                          >
-                            {habit.name}
-                          </span>
+            <div className="space-y-3">
+              {habits.map((habit) => {
+                const detail = getDayDetail(habit.id);
+                const streak = getStreak(habit.id, logs);
+                const progressPct = habit.goalMinutes ? Math.min(100, (detail.timeSpent / habit.goalMinutes) * 100) : (detail.timeSpent > 0 ? 100 : 0);
+
+                return (
+                  <div
+                    key={habit.id}
+                    className={`rounded-lg p-3 transition-colors ${detail.completed ? "bg-primary/5" : "bg-secondary/20"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={detail.completed}
+                        onCheckedChange={() => toggleHabit(habit.id)}
+                        className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      />
+                      <span className="text-lg">{habit.emoji}</span>
+                      <span className={`font-medium text-sm flex-1 ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
+                        {habit.name}
+                      </span>
+                      {detail.timeSpent > 0 && (
+                        <span className="text-xs font-bold streak-glow flex items-center gap-1">
+                          {formatMinutes(detail.timeSpent)} 🔥
+                        </span>
+                      )}
+                      {streak > 0 && (
+                        <div className="flex items-center gap-1 streak-glow">
+                          <Flame className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">{streak}</span>
                         </div>
-                      </td>
-                      <td className="py-3 pr-3">
-                        <Input
-                          placeholder="Add details..."
-                          value={detail.description}
-                          onChange={(e) => updateDescription(habit.id, e.target.value)}
-                          className="h-8 text-xs bg-secondary/50 border-border/50 focus:border-primary/50"
-                        />
-                      </td>
-                      <td className="py-3 text-center">
-                        {streak > 0 && (
-                          <div className="flex items-center justify-center gap-1 streak-glow">
-                            <Flame className="w-3.5 h-3.5" />
-                            <span className="text-xs font-bold">{streak}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3">
-                        <button
-                          onClick={() => deleteHabit(habit.id)}
-                          className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-40 hover:opacity-100"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      )}
+                      <button
+                        onClick={() => deleteHabit(habit.id)}
+                        className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-40 hover:opacity-100"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Progress bar */}
+                    {detail.timeSpent > 0 && (
+                      <div className="mt-2 ml-10">
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 ease-out progress-bar-glow"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <div className="mt-2 ml-10">
+                      <Input
+                        placeholder="Add details..."
+                        value={detail.description}
+                        onChange={(e) => updateDescription(habit.id, e.target.value)}
+                        className="h-7 text-xs bg-secondary/30 border-border/30 focus:border-primary/50"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="text-center py-12">
-              <div className="text-5xl mb-4">🦇</div>
+              <div className="text-5xl mb-4">🌳</div>
               <h2 className="text-lg font-medium text-foreground mb-1">No habits yet</h2>
               <p className="text-muted-foreground text-sm">Add your first habit to start tracking</p>
             </div>
           )}
 
-          {/* Add habit button */}
           <div className="mt-4 flex justify-center">
             <AddHabitDialog onAdd={addHabit} />
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Day Notes */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              📝 Day Notes
-            </h3>
-            <Textarea
-              placeholder="How was your day? Reflections, wins, struggles..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[100px] resize-none bg-secondary/30 border-border/50 focus:border-primary/50"
-            />
-            <div className="mt-3 flex justify-end">
-              <Button onClick={saveNotes} size="sm" className="btn-glossy border-0">
-                Save Notes
-              </Button>
-            </div>
+      {/* Time Blocks */}
+      <Card className="border-border bg-card mb-4">
+        <CardContent className="p-6">
+          <TimeBlockSection timeBlocks={dayEntry.timeBlocks} onUpdate={updateTimeBlocks} />
+        </CardContent>
+      </Card>
+
+      {/* Day Notes */}
+      <Card className="border-border bg-card">
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">📝 Day Notes</h3>
+          <Textarea
+            placeholder="How was your day? Reflections, wins, struggles..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="min-h-[100px] resize-none bg-secondary/30 border-border/50 focus:border-primary/50"
+          />
+          <div className="mt-3 flex justify-end">
+            <Button onClick={saveNotes} size="sm" className="btn-glossy border-0">Save Notes</Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Time Spent Modal */}
+      {timeModal && (
+        <TimeSpentModal
+          open={!!timeModal}
+          onClose={() => setTimeModal(null)}
+          onSubmit={handleTimeSubmit}
+          habitName={timeModal.habitName}
+        />
+      )}
     </div>
   );
 }

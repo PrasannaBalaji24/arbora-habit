@@ -170,7 +170,15 @@ export function getEmptyDayEntry(): DayEntry {
 }
 
 export function getDayEntry(dayLogs: DayLogs, dateStr: string): DayEntry {
-  return dayLogs[dateStr] || getEmptyDayEntry();
+  const empty = getEmptyDayEntry();
+  const existing = dayLogs[dateStr];
+  if (!existing) return empty;
+  return {
+    ...empty,
+    ...existing,
+    timeBlocks: existing.timeBlocks || empty.timeBlocks,
+    wastedTime: existing.wastedTime || [],
+  };
 }
 
 // Aggregation helpers

@@ -7,7 +7,7 @@ interface TimeBlockSectionProps {
   onUpdate: (blocks: TimeBlock[]) => void;
 }
 
-export default function TimeBlockSection({ timeBlocks, onUpdate }: TimeBlockSectionProps) {
+export default function TimeBlockSection({ timeBlocks = [], onUpdate }: TimeBlockSectionProps) {
   const updateBlock = (id: string, description: string) => {
     onUpdate(timeBlocks.map((b) => (b.id === id ? { ...b, description } : b)));
   };

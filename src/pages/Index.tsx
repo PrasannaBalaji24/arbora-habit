@@ -94,19 +94,44 @@ export default function Index() {
     updateLogs({ ...logs, [habitId]: updatedDates });
   };
 
+  const autoFillTimeBlocks = (entry: typeof dayEntry, habitName: string, emoji: string, minutes: number) => {
+    if (minutes <= 0) return entry.timeBlocks;
+    const blocks = [...(entry.timeBlocks || [])];
+    let remaining = minutes;
+    for (let i = 0; i < blocks.length && remaining > 0; i++) {
+      if (!blocks[i].description) {
+        blocks[i] = { ...blocks[i], description: `${emoji} ${habitName}` };
+        remaining -= 60;
+      }
+    }
+    return blocks;
+  };
+
   const handleTimeSubmit = (minutes: number) => {
     if (timeModal) {
       const current = getDayDetail(timeModal.habitId);
+      const habit = habits.find((h) => h.id === timeModal.habitId);
+      const updatedBlocks = minutes > 0 && habit
+        ? autoFillTimeBlocks(dayEntry, habit.name, habit.emoji, minutes)
+        : dayEntry.timeBlocks;
       const updated = {
         ...dayEntry,
         habits: {
           ...dayEntry.habits,
           [timeModal.habitId]: { ...current, timeSpent: minutes },
         },
+        timeBlocks: updatedBlocks,
       };
       updateDayLogs({ ...dayLogs, [selectedDate]: updated });
     }
     setTimeModal(null);
+  };
+
+  const openTimePrompt = (habitId: string) => {
+    const habit = habits.find((h) => h.id === habitId);
+    if (habit) {
+      setTimeModal({ habitId, habitName: habit.name });
+    }
   };
 
   const updateDescription = (habitId: string, description: string) => {

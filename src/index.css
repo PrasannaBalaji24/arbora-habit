@@ -110,6 +110,15 @@
   .hero-container-glow::before {
     display: none;
   }
+  .progress-bar-glow {
+    background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--streak-glow)) 100%);
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.4);
+    animation: progressPulse 2s ease-in-out infinite;
+  }
+  @keyframes progressPulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+  }
   .table-hero th {
     border-bottom: 1px solid hsl(var(--border));
   }

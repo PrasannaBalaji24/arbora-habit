@@ -43,7 +43,10 @@ export default function Index() {
   useEffect(() => {
     setHabits(getHabits());
     setLogs(getLogs());
-    setDayLogs(getDayLogs());
+    const raw = getDayLogs();
+    const { dayLogs: filled, changed } = backfillPastDays(raw);
+    if (changed) saveDayLogs(filled);
+    setDayLogs(filled);
   }, []);
 
   useHabitReminders(habits);
@@ -101,25 +104,21 @@ export default function Index() {
     updateLogs({ ...logs, [habitId]: updatedDates });
   };
 
-  const autoFillTimeBlocks = (entry: typeof dayEntry, habitName: string, emoji: string, minutes: number) => {
-    if (minutes <= 0) return entry.timeBlocks;
+  const fillBlocksByRange = (entry: typeof dayEntry, habitName: string, emoji: string, from: string, to: string) => {
     const blocks = [...(entry.timeBlocks || [])];
-    let remaining = minutes;
-    for (let i = 0; i < blocks.length && remaining > 0; i++) {
-      if (!blocks[i].description) {
-        blocks[i] = { ...blocks[i], description: `${emoji} ${habitName}` };
-        remaining -= 60;
-      }
-    }
+    const indices = getBlocksInRange(blocks, from, to);
+    indices.forEach((i) => {
+      blocks[i] = { ...blocks[i], description: `${emoji} ${habitName}` };
+    });
     return blocks;
   };
 
-  const handleTimeSubmit = (minutes: number) => {
+  const handleTimeSubmit = (minutes: number, fromTime?: string, toTime?: string) => {
     if (timeModal) {
       const current = getDayDetail(timeModal.habitId);
       const habit = habits.find((h) => h.id === timeModal.habitId);
-      const updatedBlocks = minutes > 0 && habit
-        ? autoFillTimeBlocks(dayEntry, habit.name, habit.emoji, minutes)
+      const updatedBlocks = minutes > 0 && habit && fromTime && toTime
+        ? fillBlocksByRange(dayEntry, habit.name, habit.emoji, fromTime, toTime)
         : dayEntry.timeBlocks;
       const updated = {
         ...dayEntry,

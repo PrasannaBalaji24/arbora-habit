@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import WeeklyReport from "./pages/WeeklyReport";
 import MonthlyReport from "./pages/MonthlyReport";
 import WastedTime from "./pages/WastedTime";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,26 +20,34 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SidebarProvider>
-          <div className="min-h-screen flex w-full">
-            <AppSidebar />
-            <div className="flex-1 flex flex-col">
-              <header className="h-12 flex items-center border-b border-border">
-                <SidebarTrigger className="ml-2" />
-                <span className="ml-3 text-sm font-semibold text-muted-foreground tracking-wide">Arbora</span>
-              </header>
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/weekly" element={<WeeklyReport />} />
-                  <Route path="/monthly" element={<MonthlyReport />} />
-                  <Route path="/wasted" element={<WastedTime />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route
+            path="*"
+            element={
+              <SidebarProvider>
+                <div className="min-h-screen flex w-full">
+                  <AppSidebar />
+                  <div className="flex-1 flex flex-col">
+                    <header className="h-12 flex items-center border-b border-border">
+                      <SidebarTrigger className="ml-2" />
+                      <span className="ml-3 text-sm font-semibold text-muted-foreground tracking-wide">Arbora</span>
+                    </header>
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/weekly" element={<WeeklyReport />} />
+                        <Route path="/monthly" element={<MonthlyReport />} />
+                        <Route path="/wasted" element={<WastedTime />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                  </div>
+                </div>
+              </SidebarProvider>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -63,6 +63,8 @@ export default function Index() {
   const updateHabits = useCallback((h: Habit[]) => {
     setHabits(h);
     saveHabits(h);
+    // Best-effort sync of reminder-bearing habits to the cloud (no-op if signed out)
+    import("@/lib/push").then((m) => m.syncRemindersToCloud(h)).catch(() => {});
   }, []);
 
   const updateLogs = useCallback((l: HabitLog) => {

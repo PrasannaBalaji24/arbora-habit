@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ExportPDFButton from "@/components/ExportPDFButton";
 import {
   getHabits,
   getDayLogs,

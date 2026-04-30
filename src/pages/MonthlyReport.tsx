@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ExportPDFButton from "@/components/ExportPDFButton";
 import {
   getHabits,
   getDayLogs,
@@ -36,6 +37,7 @@ export default function MonthlyReport() {
   const [dayLogs, setDayLogs] = useState<DayLogs>({});
   const [logs, setLogs] = useState<HabitLog>({});
   const [monthOffset, setMonthOffset] = useState(0);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setHabits(getHabits());
@@ -103,6 +105,7 @@ export default function MonthlyReport() {
 
   return (
     <div className="w-full max-w-3xl mx-auto py-8 px-4">
+      <div ref={printRef} className="bg-background">
       <div className="gradient-header text-primary-foreground py-4 px-6 rounded-xl mb-6">
         <div className="flex items-center justify-between">
           <button onClick={() => setMonthOffset((o) => o - 1)} className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
@@ -116,6 +119,14 @@ export default function MonthlyReport() {
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <ExportPDFButton
+          targetRef={printRef}
+          filename={`arbora-monthly-${refStr.slice(0, 7)}.pdf`}
+          label="Export Monthly PDF"
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -265,6 +276,41 @@ export default function MonthlyReport() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Per-habit totals for full-detail PDF */}
+      {habits.length > 0 && (
+        <Card className="border-border bg-card mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Per-Habit Totals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {habits.map((h) => {
+                const total = monthDates.reduce(
+                  (s, d) => s + (getDayEntry(dayLogs, d).habits?.[h.id]?.timeSpent || 0),
+                  0,
+                );
+                const days = monthDates.filter(
+                  (d) => getDayEntry(dayLogs, d).habits?.[h.id]?.completed,
+                ).length;
+                return (
+                  <div key={h.id} className="flex items-center justify-between text-sm py-1 border-b border-border/40 last:border-0">
+                    <span className="flex items-center gap-2">
+                      <span>{h.emoji}</span>
+                      <span>{h.name}</span>
+                      {h.category && <span className="text-[10px] text-muted-foreground">· {h.category}</span>}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {days}/{monthDates.length} days · <span className="text-primary font-semibold">{formatMinutes(total)}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      </div>
     </div>
   );
 }

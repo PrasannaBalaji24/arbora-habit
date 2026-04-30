@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Flame, Trash2, Bell } from "lucide-react";
+import ExportPDFButton from "@/components/ExportPDFButton";
 import {
   Habit,
   HabitLog,
@@ -40,6 +41,7 @@ export default function Index() {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [notes, setNotes] = useState("");
   const [timeModal, setTimeModal] = useState<{ habitId: string; habitName: string } | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setHabits(getHabits());
@@ -195,6 +197,7 @@ export default function Index() {
 
   return (
     <div className="w-full max-w-3xl mx-auto py-8 px-4">
+      <div ref={printRef} className="bg-background">
       {/* Header */}
       <div className="gradient-header text-primary-foreground py-5 px-6 rounded-xl mb-6">
         <div className="flex items-center justify-between">
@@ -372,6 +375,15 @@ export default function Index() {
           </div>
         </CardContent>
       </Card>
+      </div>
+
+      <div className="flex justify-end mt-4">
+        <ExportPDFButton
+          targetRef={printRef}
+          filename={`arbora-daily-${selectedDate}.pdf`}
+          label="Export Daily PDF"
+        />
+      </div>
 
       {/* Time Spent Modal */}
       {timeModal && (

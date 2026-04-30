@@ -2,6 +2,7 @@ import { CalendarDays, BarChart3, TrendingUp, Clock, Sun, Moon } from "lucide-re
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
+import { SidebarReminderControls } from "@/components/SidebarReminderControls";
 import {
   Sidebar,
   SidebarContent,
@@ -63,7 +64,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-2 space-y-1">
+        <SidebarReminderControls />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={toggle} className="hover:bg-muted/50">

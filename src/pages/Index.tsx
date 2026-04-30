@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Flame, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Flame, Trash2, Bell } from "lucide-react";
 import {
   Habit,
   HabitLog,
   DayLogs,
   HabitDayDetail,
+  HabitCategory,
+  CATEGORY_STYLES,
   getHabits,
   saveHabits,
   getLogs,
@@ -21,6 +23,7 @@ import {
 import AddHabitDialog from "@/components/AddHabitDialog";
 import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
+import { useHabitReminders } from "@/hooks/use-habit-reminders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -40,6 +43,8 @@ export default function Index() {
     setLogs(getLogs());
     setDayLogs(getDayLogs());
   }, []);
+
+  useHabitReminders(habits);
 
   const dayEntry = getDayEntry(dayLogs, selectedDate);
 
@@ -146,12 +151,14 @@ export default function Index() {
     updateDayLogs({ ...dayLogs, [selectedDate]: updated });
   };
 
-  const addHabit = (name: string, emoji: string) => {
+  const addHabit = (name: string, emoji: string, category: HabitCategory, reminderTime?: string) => {
     const newHabit: Habit = {
       id: crypto.randomUUID(),
       name,
       emoji,
       createdAt: todayStr(),
+      category,
+      reminderTime,
     };
     updateHabits([...habits, newHabit]);
   };
@@ -241,9 +248,22 @@ export default function Index() {
                         className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                       <span className="text-lg">{habit.emoji}</span>
-                      <span className={`font-medium text-sm flex-1 ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
-                        {habit.name}
-                      </span>
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium text-sm ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
+                          {habit.name}
+                        </span>
+                        {habit.category && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_STYLES[habit.category]}`}>
+                            {habit.category}
+                          </span>
+                        )}
+                        {habit.reminderTime && (
+                          <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5" title={`Reminder at ${habit.reminderTime}`}>
+                            <Bell className="w-2.5 h-2.5" />
+                            {habit.reminderTime}
+                          </span>
+                        )}
+                      </div>
                       {detail.timeSpent > 0 ? (
                         <button
                           onClick={() => openTimePrompt(habit.id)}

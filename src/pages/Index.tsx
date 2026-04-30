@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Flame, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Flame, Trash2, Bell } from "lucide-react";
 import {
   Habit,
   HabitLog,
   DayLogs,
   HabitDayDetail,
+  HabitCategory,
+  CATEGORY_STYLES,
   getHabits,
   saveHabits,
   getLogs,
@@ -21,6 +23,7 @@ import {
 import AddHabitDialog from "@/components/AddHabitDialog";
 import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
+import { useHabitReminders } from "@/hooks/use-habit-reminders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

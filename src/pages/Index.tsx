@@ -347,6 +347,16 @@ export default function Index() {
         </CardContent>
       </Card>
 
+      {/* Wasted Time */}
+      <Card className="border-border bg-card mb-4">
+        <CardContent className="p-6">
+          <DailyWastedTimeCard
+            entries={dayEntry.wastedTime || []}
+            onChange={updateWastedTime}
+          />
+        </CardContent>
+      </Card>
+
       {/* Day Notes */}
       <Card className="border-border bg-card">
         <CardContent className="p-6">

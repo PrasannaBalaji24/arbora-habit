@@ -151,12 +151,14 @@ export default function Index() {
     updateDayLogs({ ...dayLogs, [selectedDate]: updated });
   };
 
-  const addHabit = (name: string, emoji: string) => {
+  const addHabit = (name: string, emoji: string, category: HabitCategory, reminderTime?: string) => {
     const newHabit: Habit = {
       id: crypto.randomUUID(),
       name,
       emoji,
       createdAt: todayStr(),
+      category,
+      reminderTime,
     };
     updateHabits([...habits, newHabit]);
   };

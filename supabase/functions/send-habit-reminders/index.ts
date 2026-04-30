@@ -63,6 +63,13 @@ function localHHMM(timezone: string, now = new Date()): { hhmm: string; date: st
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Pull all habits that have a reminder_time set
     const { data: habits, error: hErr } = await supabase

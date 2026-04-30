@@ -248,9 +248,22 @@ export default function Index() {
                         className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                       <span className="text-lg">{habit.emoji}</span>
-                      <span className={`font-medium text-sm flex-1 ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
-                        {habit.name}
-                      </span>
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium text-sm ${detail.completed ? "text-primary line-through opacity-80" : "text-foreground"}`}>
+                          {habit.name}
+                        </span>
+                        {habit.category && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_STYLES[habit.category]}`}>
+                            {habit.category}
+                          </span>
+                        )}
+                        {habit.reminderTime && (
+                          <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5" title={`Reminder at ${habit.reminderTime}`}>
+                            <Bell className="w-2.5 h-2.5" />
+                            {habit.reminderTime}
+                          </span>
+                        )}
+                      </div>
                       {detail.timeSpent > 0 ? (
                         <button
                           onClick={() => openTimePrompt(habit.id)}

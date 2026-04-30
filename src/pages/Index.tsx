@@ -180,6 +180,10 @@ export default function Index() {
     updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } });
   };
 
+  const updateWastedTime = (wastedTime: typeof dayEntry.wastedTime) => {
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } });
+  };
+
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));
   const goToNextDay = () => setSelectedDate(addDays(selectedDate, 1));
   const goToToday = () => setSelectedDate(todayStr());

@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import FancyPieChart, { PieDatum } from "@/components/charts/FancyPieChart";
+import { colorForWastedCategory } from "@/lib/chart-colors";
 
 export default function WastedTime() {
   const [dayLogs, setDayLogs] = useState<DayLogs>({});

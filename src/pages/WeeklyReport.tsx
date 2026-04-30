@@ -91,6 +91,7 @@ export default function WeeklyReport() {
 
   return (
     <div className="w-full max-w-3xl mx-auto py-8 px-4">
+      <div ref={printRef} className="bg-background">
       <div className="gradient-header text-primary-foreground py-4 px-6 rounded-xl mb-6">
         <div className="flex items-center justify-between">
           <button onClick={() => setWeekStart(addDays(weekStart, -7))} className="p-2 rounded-full hover:bg-primary-foreground/10 transition-colors">
@@ -104,6 +105,14 @@ export default function WeeklyReport() {
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <ExportPDFButton
+          targetRef={printRef}
+          filename={`arbora-weekly-${weekDates[0]}.pdf`}
+          label="Export Weekly PDF"
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">

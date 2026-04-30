@@ -126,22 +126,35 @@ export default function WastedTime() {
             <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Daily Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-destructive mb-3">{formatMinutes(totalWasted)}</div>
-            {Object.entries(grouped).length > 0 ? (
-              <div className="space-y-2">
-                {Object.entries(grouped).map(([cat, mins]) => (
-                  <div key={cat} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{cat}</span>
-                    <span className="font-medium text-foreground">{formatMinutes(mins)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No wasted time logged 🎉</p>
-            )}
+            <div className="text-3xl font-bold text-destructive mb-1">{formatMinutes(totalWasted)}</div>
+            <p className="text-xs text-muted-foreground">
+              {Object.keys(grouped).length > 0 ? "across categories below" : "No wasted time logged 🎉"}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Category breakdown pie */}
+      {Object.entries(grouped).length > 0 && (
+        <Card className="mt-4 border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
+              Category Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FancyPieChart
+              data={Object.entries(grouped).map(([name, value], i): PieDatum => ({
+                name,
+                value,
+                color: colorForWastedCategory(name, i),
+              }))}
+              centerLabel={formatMinutes(totalWasted)}
+              centerSubLabel="Wasted"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Entries list */}
       {wastedList.length > 0 && (

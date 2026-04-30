@@ -5,21 +5,43 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 
+// This function is intended to be called by pg_cron only.
+// It is NOT browser-facing, so we do not advertise permissive CORS.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-cron-secret",
 };
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:reminders@arbora.app";
+const rawSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:reminders@arbora.app";
+// VAPID subject MUST be an https: or mailto: URL
+const VAPID_SUBJECT = /^(https:|mailto:)/.test(rawSubject)
+  ? rawSubject
+  : "mailto:reminders@arbora.app";
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  SERVICE_ROLE_KEY,
 );
+
+function isAuthorized(req: Request): boolean {
+  // Accept either an x-cron-secret header matching CRON_SECRET,
+  // or an Authorization: Bearer <service_role_key> header (used by pg_cron).
+  const headerSecret = req.headers.get("x-cron-secret");
+  if (CRON_SECRET && headerSecret && headerSecret === CRON_SECRET) return true;
+
+  const auth = req.headers.get("authorization") || "";
+  if (auth.startsWith("Bearer ")) {
+    const token = auth.slice("Bearer ".length).trim();
+    if (token === SERVICE_ROLE_KEY) return true;
+    if (CRON_SECRET && token === CRON_SECRET) return true;
+  }
+  return false;
+}
 
 function localHHMM(timezone: string, now = new Date()): { hhmm: string; date: string } {
   const fmt = new Intl.DateTimeFormat("en-GB", {
@@ -40,6 +62,13 @@ function localHHMM(timezone: string, now = new Date()): { hhmm: string; date: st
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     // Pull all habits that have a reminder_time set

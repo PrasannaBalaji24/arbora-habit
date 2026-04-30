@@ -19,6 +19,8 @@ import {
   addDays,
   getStreak,
   formatMinutes,
+  getBlocksInRange,
+  backfillPastDays,
 } from "@/lib/habits";
 import AddHabitDialog from "@/components/AddHabitDialog";
 import TimeSpentModal from "@/components/TimeSpentModal";

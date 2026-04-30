@@ -25,6 +25,7 @@ import {
 import AddHabitDialog from "@/components/AddHabitDialog";
 import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
+import DailyWastedTimeCard from "@/components/DailyWastedTimeCard";
 import { useHabitReminders } from "@/hooks/use-habit-reminders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -177,6 +178,10 @@ export default function Index() {
 
   const updateTimeBlocks = (blocks: typeof dayEntry.timeBlocks) => {
     updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } });
+  };
+
+  const updateWastedTime = (wastedTime: typeof dayEntry.wastedTime) => {
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } });
   };
 
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));
@@ -339,6 +344,16 @@ export default function Index() {
       <Card className="border-border bg-card mb-4">
         <CardContent className="p-6">
           <TimeBlockSection timeBlocks={dayEntry.timeBlocks} onUpdate={updateTimeBlocks} />
+        </CardContent>
+      </Card>
+
+      {/* Wasted Time */}
+      <Card className="border-border bg-card mb-4">
+        <CardContent className="p-6">
+          <DailyWastedTimeCard
+            entries={dayEntry.wastedTime || []}
+            onChange={updateWastedTime}
+          />
         </CardContent>
       </Card>
 

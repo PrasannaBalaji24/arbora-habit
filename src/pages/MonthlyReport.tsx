@@ -11,13 +11,25 @@ import {
   getDayCompletionRate,
   formatMinutes,
   getStreak,
-  todayStr,
   Habit,
   DayLogs,
   HabitLog,
 } from "@/lib/habits";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  CartesianGrid,
+  Area,
+  AreaChart,
+} from "recharts";
+import FancyPieChart, { PieDatum } from "@/components/charts/FancyPieChart";
+import { colorForHabitCategory, colorForWastedCategory } from "@/lib/chart-colors";
 
 export default function MonthlyReport() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -53,6 +65,41 @@ export default function MonthlyReport() {
       completion: getDayCompletionRate(entry, habits.length),
     };
   });
+
+  // Productive by habit category
+  const habitCategoryTotals: Record<string, number> = {};
+  monthDates.forEach((date) => {
+    const entry = getDayEntry(dayLogs, date);
+    Object.entries(entry.habits || {}).forEach(([habitId, detail]) => {
+      const habit = habits.find((h) => h.id === habitId);
+      const cat = habit?.category || "Uncategorized";
+      habitCategoryTotals[cat] = (habitCategoryTotals[cat] || 0) + (detail.timeSpent || 0);
+    });
+  });
+
+  const wastedCategoryTotals: Record<string, number> = {};
+  monthDates.forEach((date) => {
+    const entry = getDayEntry(dayLogs, date);
+    (entry.wastedTime || []).forEach((w) => {
+      wastedCategoryTotals[w.category] = (wastedCategoryTotals[w.category] || 0) + w.minutes;
+    });
+  });
+
+  const productivePie: PieDatum[] = Object.entries(habitCategoryTotals)
+    .filter(([, v]) => v > 0)
+    .map(([name, value], i) => ({ name, value, color: colorForHabitCategory(name, i) }));
+
+  const wastedPie: PieDatum[] = Object.entries(wastedCategoryTotals)
+    .filter(([, v]) => v > 0)
+    .map(([name, value], i) => ({ name, value, color: colorForWastedCategory(name, i) }));
+
+  const tooltipStyle = {
+    background: "hsl(var(--popover))",
+    border: "1px solid hsl(var(--border))",
+    borderRadius: 10,
+    color: "hsl(var(--popover-foreground))",
+    boxShadow: "0 6px 20px hsl(0 0% 0% / 0.15)",
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto py-8 px-4">
@@ -92,6 +139,42 @@ export default function MonthlyReport() {
         </Card>
       </div>
 
+      {/* Pie charts */}
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
+              Productive · by Category
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FancyPieChart
+              data={productivePie}
+              centerLabel={formatMinutes(totalHabitMins)}
+              centerSubLabel="Total"
+              compact
+              height={200}
+            />
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
+              Wasted · by Category
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FancyPieChart
+              data={wastedPie}
+              centerLabel={formatMinutes(totalWastedMins)}
+              centerSubLabel="Total"
+              compact
+              height={200}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Habit streaks */}
       {habits.length > 0 && (
         <Card className="border-border bg-card mb-6">
@@ -125,22 +208,33 @@ export default function MonthlyReport() {
           <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Daily Hours</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px]">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" tick={{ fill: "hsl(230 6% 50%)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(230 6% 50%)", fontSize: 10 }} axisLine={false} tickLine={false} unit="h" />
-                <Tooltip contentStyle={{ background: "hsl(230 12% 12%)", border: "1px solid hsl(230 10% 18%)", borderRadius: 8, color: "hsl(40 15% 85%)" }} />
-                <Legend />
-                <Bar dataKey="productive" fill="hsl(170 60% 45%)" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="wasted" fill="hsl(35 80% 55%)" radius={[2, 2, 0, 0]} opacity={0.85} />
+              <BarChart data={chartData} barGap={2}>
+                <defs>
+                  <linearGradient id="mBarProductive" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(170 65% 55%)" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(170 60% 38%)" stopOpacity={0.85} />
+                  </linearGradient>
+                  <linearGradient id="mBarWasted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(35 85% 62%)" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(35 80% 48%)" stopOpacity={0.85} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} unit="h" />
+                <Tooltip cursor={{ fill: "hsl(var(--secondary) / 0.4)" }} contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="productive" fill="url(#mBarProductive)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="wasted" fill="url(#mBarWasted)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Completion line chart */}
+      {/* Completion area chart */}
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Completion Rate</CardTitle>
@@ -148,12 +242,25 @@ export default function MonthlyReport() {
         <CardContent>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <XAxis dataKey="name" tick={{ fill: "hsl(230 6% 50%)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(230 6% 50%)", fontSize: 10 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
-                <Tooltip contentStyle={{ background: "hsl(230 12% 12%)", border: "1px solid hsl(230 10% 18%)", borderRadius: 8, color: "hsl(40 15% 85%)" }} />
-                <Line type="monotone" dataKey="completion" stroke="hsl(200 65% 50%)" strokeWidth={2} dot={false} />
-              </LineChart>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="completionFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="completion"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2.5}
+                  fill="url(#completionFill)"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </CardContent>

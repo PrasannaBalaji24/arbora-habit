@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ExportPDFButton from "@/components/ExportPDFButton";
 import {
   getHabits,
   getDayLogs,
@@ -33,6 +34,7 @@ export default function WeeklyReport() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [dayLogs, setDayLogs] = useState<DayLogs>({});
   const [weekStart, setWeekStart] = useState(todayStr());
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setHabits(getHabits());

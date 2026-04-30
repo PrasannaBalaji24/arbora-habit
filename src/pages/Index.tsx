@@ -44,6 +44,8 @@ export default function Index() {
     setDayLogs(getDayLogs());
   }, []);
 
+  useHabitReminders(habits);
+
   const dayEntry = getDayEntry(dayLogs, selectedDate);
 
   useEffect(() => {

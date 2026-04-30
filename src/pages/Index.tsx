@@ -25,6 +25,7 @@ import {
 import AddHabitDialog from "@/components/AddHabitDialog";
 import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
+import DailyWastedTimeCard from "@/components/DailyWastedTimeCard";
 import { useHabitReminders } from "@/hooks/use-habit-reminders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

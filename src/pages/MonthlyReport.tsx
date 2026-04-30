@@ -24,8 +24,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  LineChart,
-  Line,
   CartesianGrid,
   Area,
   AreaChart,

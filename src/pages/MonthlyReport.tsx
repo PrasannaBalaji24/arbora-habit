@@ -132,8 +132,8 @@ export default function MonthlyReport() {
                 <YAxis tick={{ fill: "hsl(230 6% 50%)", fontSize: 10 }} axisLine={false} tickLine={false} unit="h" />
                 <Tooltip contentStyle={{ background: "hsl(230 12% 12%)", border: "1px solid hsl(230 10% 18%)", borderRadius: 8, color: "hsl(40 15% 85%)" }} />
                 <Legend />
-                <Bar dataKey="productive" fill="hsl(5 70% 55%)" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="wasted" fill="hsl(0 55% 50%)" radius={[2, 2, 0, 0]} opacity={0.5} />
+                <Bar dataKey="productive" fill="hsl(170 60% 45%)" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="wasted" fill="hsl(35 80% 55%)" radius={[2, 2, 0, 0]} opacity={0.85} />
               </BarChart>
             </ResponsiveContainer>
           </div>

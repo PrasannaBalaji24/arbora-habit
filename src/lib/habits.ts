@@ -247,6 +247,53 @@ export function getDayTotalWastedTime(dayEntry: DayEntry): number {
   return (dayEntry.wastedTime || []).reduce((sum, w) => sum + w.minutes, 0);
 }
 
+// Convert "HH:MM" to minutes since midnight
+export function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// Returns indices of time blocks overlapping the [from, to) range
+export function getBlocksInRange(blocks: TimeBlock[], from: string, to: string): number[] {
+  const f = timeToMinutes(from);
+  const t = timeToMinutes(to);
+  const out: number[] = [];
+  blocks.forEach((b, i) => {
+    const bs = timeToMinutes(b.startTime);
+    const be = timeToMinutes(b.endTime);
+    if (bs < t && be > f) out.push(i);
+  });
+  return out;
+}
+
+// Backfill: for any past day, empty time blocks (06–22) become wasted hours.
+// Returns updated DayLogs (mutates a copy) and a boolean if anything changed.
+export function backfillPastDays(dayLogs: DayLogs): { dayLogs: DayLogs; changed: boolean } {
+  const today = todayStr();
+  const updated: DayLogs = { ...dayLogs };
+  let changed = false;
+  Object.keys(updated).forEach((date) => {
+    if (date >= today) return;
+    const entry = updated[date];
+    if (!entry || !entry.timeBlocks) return;
+    if ((entry as any).__backfilled) return;
+    const emptyHours = entry.timeBlocks.filter((b) => !b.description.trim()).length;
+    if (emptyHours > 0) {
+      const wastedMins = emptyHours * 60;
+      const wastedTime = [
+        ...(entry.wastedTime || []),
+        { category: "Unaccounted time", minutes: wastedMins },
+      ];
+      updated[date] = { ...entry, wastedTime, __backfilled: true } as any;
+      changed = true;
+    } else {
+      updated[date] = { ...entry, __backfilled: true } as any;
+      changed = true;
+    }
+  });
+  return { dayLogs: updated, changed };
+}
+
 export function getDayCompletionRate(dayEntry: DayEntry, totalHabits: number): number {
   if (totalHabits === 0) return 0;
   const completed = Object.values(dayEntry.habits).filter((h) => h.completed).length;

@@ -101,8 +101,8 @@ export default function WeeklyReport() {
                   formatter={(value: number, name: string) => [`${value}h`, name === "productive" ? "Productive" : "Wasted"]}
                 />
                 <Legend />
-                <Bar dataKey="productive" fill="hsl(5 70% 55%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="wasted" fill="hsl(0 55% 50%)" radius={[4, 4, 0, 0]} opacity={0.5} />
+                <Bar dataKey="productive" fill="hsl(170 60% 45%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="wasted" fill="hsl(35 80% 55%)" radius={[4, 4, 0, 0]} opacity={0.85} />
               </BarChart>
             </ResponsiveContainer>
           </div>

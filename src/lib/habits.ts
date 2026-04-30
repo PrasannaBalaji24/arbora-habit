@@ -1,9 +1,40 @@
+export type HabitCategory =
+  | "Health"
+  | "Learning"
+  | "Creative"
+  | "Productivity"
+  | "Mindfulness"
+  | "Social"
+  | "Other";
+
+export const HABIT_CATEGORIES: HabitCategory[] = [
+  "Health",
+  "Learning",
+  "Creative",
+  "Productivity",
+  "Mindfulness",
+  "Social",
+  "Other",
+];
+
+export const CATEGORY_STYLES: Record<HabitCategory, string> = {
+  Health: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+  Learning: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+  Creative: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30",
+  Productivity: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+  Mindfulness: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30",
+  Social: "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30",
+  Other: "bg-muted text-muted-foreground border-border",
+};
+
 export interface Habit {
   id: string;
   name: string;
   emoji: string;
   createdAt: string;
   goalMinutes?: number; // daily goal in minutes
+  category?: HabitCategory;
+  reminderTime?: string; // "HH:MM" 24h, optional daily reminder
 }
 
 export interface HabitDayDetail {

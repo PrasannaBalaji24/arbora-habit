@@ -3,6 +3,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { SidebarReminderControls } from "@/components/SidebarReminderControls";
+import { SyncStatusIndicator } from "@/components/SyncStatusIndicator";
 import {
   Sidebar,
   SidebarContent,

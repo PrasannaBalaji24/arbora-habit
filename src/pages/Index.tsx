@@ -28,6 +28,14 @@ import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
 import DailyWastedTimeCard from "@/components/DailyWastedTimeCard";
 import { useHabitReminders } from "@/hooks/use-habit-reminders";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  performInitialSync,
+  ensureProfileTimezone,
+  pushHabitsToCloud,
+  pushDayEntryToCloud,
+  getUserId,
+} from "@/lib/cloud-sync";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

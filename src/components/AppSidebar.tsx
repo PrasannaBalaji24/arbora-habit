@@ -66,6 +66,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-2 space-y-1">
+        <SyncStatusIndicator />
         <SidebarReminderControls />
         <SidebarMenu>
           <SidebarMenuItem>

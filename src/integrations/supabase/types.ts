@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      day_entries: {
+        Row: {
+          backfilled: boolean
+          created_at: string
+          entry_date: string
+          id: string
+          notes: string
+          time_blocks: Json
+          updated_at: string
+          user_id: string
+          wasted_time: Json
+        }
+        Insert: {
+          backfilled?: boolean
+          created_at?: string
+          entry_date: string
+          id?: string
+          notes?: string
+          time_blocks?: Json
+          updated_at?: string
+          user_id: string
+          wasted_time?: Json
+        }
+        Update: {
+          backfilled?: boolean
+          created_at?: string
+          entry_date?: string
+          id?: string
+          notes?: string
+          time_blocks?: Json
+          updated_at?: string
+          user_id?: string
+          wasted_time?: Json
+        }
+        Relationships: []
+      }
       habit_logs: {
         Row: {
           completed: boolean

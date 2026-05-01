@@ -28,6 +28,14 @@ import TimeSpentModal from "@/components/TimeSpentModal";
 import TimeBlockSection from "@/components/TimeBlockSection";
 import DailyWastedTimeCard from "@/components/DailyWastedTimeCard";
 import { useHabitReminders } from "@/hooks/use-habit-reminders";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  performInitialSync,
+  ensureProfileTimezone,
+  pushHabitsToCloud,
+  pushDayEntryToCloud,
+  getUserId,
+} from "@/lib/cloud-sync";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -42,7 +50,10 @@ export default function Index() {
   const [notes, setNotes] = useState("");
   const [timeModal, setTimeModal] = useState<{ habitId: string; habitName: string } | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const lastSyncedUserRef = useRef<string | null>(null);
 
+  // Initial load from localStorage
   useEffect(() => {
     setHabits(getHabits());
     setLogs(getLogs());
@@ -51,6 +62,29 @@ export default function Index() {
     if (changed) saveDayLogs(filled);
     setDayLogs(filled);
   }, []);
+
+  // On sign-in: pull cloud, merge, push back. Runs once per user.
+  useEffect(() => {
+    if (!user) {
+      lastSyncedUserRef.current = null;
+      return;
+    }
+    if (lastSyncedUserRef.current === user.id) return;
+    lastSyncedUserRef.current = user.id;
+    (async () => {
+      try {
+        const merged = await performInitialSync();
+        if (merged) {
+          setHabits(merged.habits);
+          setLogs(merged.logs);
+          setDayLogs(merged.dayLogs);
+        }
+        await ensureProfileTimezone();
+      } catch (e) {
+        console.error("Initial sync failed", e);
+      }
+    })();
+  }, [user]);
 
   useHabitReminders(habits);
 
@@ -63,8 +97,10 @@ export default function Index() {
   const updateHabits = useCallback((h: Habit[]) => {
     setHabits(h);
     saveHabits(h);
-    // Best-effort sync of reminder-bearing habits to the cloud (no-op if signed out)
-    import("@/lib/push").then((m) => m.syncRemindersToCloud(h)).catch(() => {});
+    // Sync ALL habits to cloud (not just ones with reminders) so cross-device works.
+    getUserId().then((uid) => {
+      if (uid) pushHabitsToCloud(uid, h).catch((e) => console.error("habit push failed", e));
+    });
   }, []);
 
   const updateLogs = useCallback((l: HabitLog) => {
@@ -72,9 +108,14 @@ export default function Index() {
     saveLogs(l);
   }, []);
 
-  const updateDayLogs = useCallback((dl: DayLogs) => {
+  const updateDayLogs = useCallback((dl: DayLogs, changedDate?: string) => {
     setDayLogs(dl);
     saveDayLogs(dl);
+    if (changedDate && dl[changedDate]) {
+      getUserId().then((uid) => {
+        if (uid) pushDayEntryToCloud(uid, changedDate, dl[changedDate]).catch((e) => console.error("day push failed", e));
+      });
+    }
   }, []);
 
   const getDayDetail = (habitId: string): HabitDayDetail => {
@@ -99,7 +140,7 @@ export default function Index() {
         [habitId]: { ...current, completed: newCompleted },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
 
     // Update logs for streak calc
     const dates = logs[habitId] || [];
@@ -133,7 +174,7 @@ export default function Index() {
         },
         timeBlocks: updatedBlocks,
       };
-      updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+      updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
     }
     setTimeModal(null);
   };
@@ -154,7 +195,7 @@ export default function Index() {
         [habitId]: { ...current, description },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
   };
 
   const addHabit = (name: string, emoji: string, category: HabitCategory, reminderTime?: string) => {
@@ -177,15 +218,15 @@ export default function Index() {
   };
 
   const saveNotes = () => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, notes } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, notes } }, selectedDate);
   };
 
   const updateTimeBlocks = (blocks: typeof dayEntry.timeBlocks) => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } }, selectedDate);
   };
 
   const updateWastedTime = (wastedTime: typeof dayEntry.wastedTime) => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } }, selectedDate);
   };
 
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));

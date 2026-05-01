@@ -151,55 +151,99 @@ export function mergeData(
 // ---------- PUSH ----------
 
 export async function pushHabitsToCloud(userId: string, habits: Habit[]) {
-  // Delete cloud habits that aren't in local set
-  const { data: existing } = await supabase.from("habits").select("id").eq("user_id", userId);
-  const localIds = new Set(habits.map((h) => h.id));
-  const toDelete = (existing || []).filter((r: any) => !localIds.has(r.id)).map((r: any) => r.id);
-  if (toDelete.length) await supabase.from("habits").delete().in("id", toDelete);
+  try {
+    const { data: existing } = await supabase.from("habits").select("id").eq("user_id", userId);
+    const localIds = new Set(habits.map((h) => h.id));
+    const toDelete = (existing || []).filter((r: any) => !localIds.has(r.id)).map((r: any) => r.id);
+    if (toDelete.length) {
+      const { error } = await supabase.from("habits").delete().in("id", toDelete);
+      if (error) throw error;
+    }
 
-  if (!habits.length) return;
-  await supabase.from("habits").upsert(
-    habits.map((h) => ({
-      id: h.id,
-      user_id: userId,
-      name: h.name,
-      emoji: h.emoji || "🌱",
-      category: h.category || null,
-      reminder_time: h.reminderTime || null,
-      goal_minutes: h.goalMinutes ?? null,
-    })),
-    { onConflict: "id" },
-  );
+    if (habits.length) {
+      const body = habits.map((h) => ({
+        id: h.id,
+        user_id: userId,
+        name: h.name,
+        emoji: h.emoji || "🌱",
+        category: h.category || null,
+        reminder_time: h.reminderTime || null,
+        goal_minutes: h.goalMinutes ?? null,
+      }));
+      const { error } = await supabase.from("habits").upsert(body, { onConflict: "id" });
+      if (error) throw error;
+    }
+    await setLastSyncedAt(Date.now());
+  } catch (err) {
+    console.warn("pushHabitsToCloud failed, queuing", err);
+    if (habits.length) {
+      await enqueue({
+        table: "habits",
+        method: "POST",
+        onConflict: "id",
+        body: habits.map((h) => ({
+          id: h.id,
+          user_id: userId,
+          name: h.name,
+          emoji: h.emoji || "🌱",
+          category: h.category || null,
+          reminder_time: h.reminderTime || null,
+          goal_minutes: h.goalMinutes ?? null,
+        })),
+      });
+    }
+  }
 }
 
 export async function pushDayEntryToCloud(userId: string, date: string, entry: DayEntry) {
-  await supabase.from("day_entries").upsert(
-    {
-      user_id: userId,
-      entry_date: date,
-      notes: entry.notes || "",
-      time_blocks: (entry.timeBlocks as any) || [],
-      wasted_time: (entry.wastedTime as any) || [],
-      backfilled: !!(entry as any).__backfilled,
-    },
-    { onConflict: "user_id,entry_date" },
-  );
-
-  // Sync habit_logs for this date
+  const dayBody = {
+    user_id: userId,
+    entry_date: date,
+    notes: entry.notes || "",
+    time_blocks: (entry.timeBlocks as any) || [],
+    wasted_time: (entry.wastedTime as any) || [],
+    backfilled: !!(entry as any).__backfilled,
+  };
   const habitDetails = entry.habits || {};
   const ids = Object.keys(habitDetails);
-  if (ids.length) {
-    await supabase.from("habit_logs").upsert(
-      ids.map((habitId) => ({
-        user_id: userId,
-        habit_id: habitId,
-        log_date: date,
-        completed: !!habitDetails[habitId].completed,
-        time_spent_minutes: habitDetails[habitId].timeSpent || 0,
-        notes: habitDetails[habitId].description || null,
-      })),
-      { onConflict: "user_id,habit_id,log_date" },
-    );
+  const logsBody = ids.map((habitId) => ({
+    user_id: userId,
+    habit_id: habitId,
+    log_date: date,
+    completed: !!habitDetails[habitId].completed,
+    time_spent_minutes: habitDetails[habitId].timeSpent || 0,
+    notes: habitDetails[habitId].description || null,
+  }));
+
+  try {
+    const { error: dayErr } = await supabase
+      .from("day_entries")
+      .upsert(dayBody, { onConflict: "user_id,entry_date" });
+    if (dayErr) throw dayErr;
+
+    if (logsBody.length) {
+      const { error: logErr } = await supabase
+        .from("habit_logs")
+        .upsert(logsBody, { onConflict: "user_id,habit_id,log_date" });
+      if (logErr) throw logErr;
+    }
+    await setLastSyncedAt(Date.now());
+  } catch (err) {
+    console.warn("pushDayEntryToCloud failed, queuing", err);
+    await enqueue({
+      table: "day_entries",
+      method: "POST",
+      onConflict: "user_id,entry_date",
+      body: dayBody,
+    });
+    if (logsBody.length) {
+      await enqueue({
+        table: "habit_logs",
+        method: "POST",
+        onConflict: "user_id,habit_id,log_date",
+        body: logsBody,
+      });
+    }
   }
 }
 

@@ -140,7 +140,7 @@ export default function Index() {
         [habitId]: { ...current, completed: newCompleted },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
 
     // Update logs for streak calc
     const dates = logs[habitId] || [];
@@ -174,7 +174,7 @@ export default function Index() {
         },
         timeBlocks: updatedBlocks,
       };
-      updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+      updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
     }
     setTimeModal(null);
   };
@@ -195,7 +195,7 @@ export default function Index() {
         [habitId]: { ...current, description },
       },
     };
-    updateDayLogs({ ...dayLogs, [selectedDate]: updated });
+    updateDayLogs({ ...dayLogs, [selectedDate]: updated }, selectedDate);
   };
 
   const addHabit = (name: string, emoji: string, category: HabitCategory, reminderTime?: string) => {
@@ -218,15 +218,15 @@ export default function Index() {
   };
 
   const saveNotes = () => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, notes } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, notes } }, selectedDate);
   };
 
   const updateTimeBlocks = (blocks: typeof dayEntry.timeBlocks) => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, timeBlocks: blocks } }, selectedDate);
   };
 
   const updateWastedTime = (wastedTime: typeof dayEntry.wastedTime) => {
-    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } });
+    updateDayLogs({ ...dayLogs, [selectedDate]: { ...dayEntry, wastedTime } }, selectedDate);
   };
 
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));

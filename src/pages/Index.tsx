@@ -7,6 +7,7 @@ import {
   DayLogs,
   HabitDayDetail,
   HabitCategory,
+  DayEntry,
   CATEGORY_STYLES,
   getHabits,
   saveHabits,
@@ -150,11 +151,28 @@ export default function Index() {
     updateLogs({ ...logs, [habitId]: updatedDates });
   };
 
-  const fillBlocksByRange = (entry: typeof dayEntry, habitName: string, emoji: string, from: string, to: string) => {
+  const applyHabitTimeRangeToBlocks = (
+    entry: DayEntry,
+    habitId: string,
+    habitName: string,
+    emoji: string,
+    nextRange?: { from: string; to: string } | null,
+  ) => {
     const blocks = [...(entry.timeBlocks || [])];
+    const habitLabel = `${emoji} ${habitName}`;
+
+    blocks.forEach((block, index) => {
+      if (block.description === habitLabel) {
+        blocks[index] = { ...block, description: "" };
+      }
+    });
+
+    if (!nextRange) return blocks;
+
+    const indices = getBlocksInRange(blocks, nextRange.from, nextRange.to);
     const indices = getBlocksInRange(blocks, from, to);
     indices.forEach((i) => {
-      blocks[i] = { ...blocks[i], description: `${emoji} ${habitName}` };
+      blocks[i] = { ...blocks[i], description: habitLabel };
     });
     return blocks;
   };
@@ -163,8 +181,14 @@ export default function Index() {
     if (timeModal) {
       const current = getDayDetail(timeModal.habitId);
       const habit = habits.find((h) => h.id === timeModal.habitId);
-      const updatedBlocks = minutes > 0 && habit && fromTime && toTime
-        ? fillBlocksByRange(dayEntry, habit.name, habit.emoji, fromTime, toTime)
+      const updatedBlocks = habit
+        ? applyHabitTimeRangeToBlocks(
+            dayEntry,
+            timeModal.habitId,
+            habit.name,
+            habit.emoji,
+            minutes > 0 && fromTime && toTime ? { from: fromTime, to: toTime } : null,
+          )
         : dayEntry.timeBlocks;
       const updated = {
         ...dayEntry,
@@ -239,8 +263,10 @@ export default function Index() {
   const total = habits.length;
 
   return (
-    <div className="w-full max-w-3xl mx-auto py-8 px-4">
+    <div className="w-full max-w-[1600px] mx-auto py-6 px-4 md:px-6 xl:px-8">
       <div ref={printRef} className="bg-background">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)] xl:items-start">
+      <div className="min-w-0">
       {/* Header */}
       <div className="gradient-header text-primary-foreground py-5 px-6 rounded-xl mb-6">
         <div className="flex items-center justify-between">
@@ -393,31 +419,35 @@ export default function Index() {
         </CardContent>
       </Card>
 
-      {/* Wasted Time */}
-      <Card className="border-border bg-card mb-4">
-        <CardContent className="p-6">
-          <DailyWastedTimeCard
-            entries={dayEntry.wastedTime || []}
-            onChange={updateWastedTime}
-          />
-        </CardContent>
-      </Card>
+      </div>
 
-      {/* Day Notes */}
-      <Card className="border-border bg-card">
-        <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">📝 Day Notes</h3>
-          <Textarea
-            placeholder="How was your day? Reflections, wins, struggles..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="min-h-[100px] resize-none bg-secondary/30 border-border/50 focus:border-primary/50"
-          />
-          <div className="mt-3 flex justify-end">
-            <Button onClick={saveNotes} size="sm" className="btn-glossy border-0">Save Notes</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <DailyWastedTimeCard
+              entries={dayEntry.wastedTime || []}
+              onChange={updateWastedTime}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">📝 Day Notes</h3>
+            <Textarea
+              placeholder="How was your day? Reflections, wins, struggles..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[180px] resize-none bg-secondary/30 border-border/50 focus:border-primary/50"
+            />
+            <div className="mt-3 flex justify-end">
+              <Button onClick={saveNotes} size="sm" className="btn-glossy border-0">Save Notes</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
+      </div>
+
       </div>
 
       <div className="flex justify-end mt-4">

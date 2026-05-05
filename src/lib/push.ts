@@ -87,34 +87,31 @@ export async function disablePushReminders(): Promise<void> {
 }
 
 /**
- * Sync local habits with reminder times to the cloud so the cron edge function
- * can deliver reminders even when the app is closed.
- * We only push habits with a reminder_time set.
+ * Sync ALL local habits to the cloud (so they appear on other devices) and
+ * make sure habits with a reminder_time are stored for the cron edge function
+ * to deliver reminders even when the app is closed.
  */
 export async function syncRemindersToCloud(habits: Habit[]): Promise<void> {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
   if (!userId) return;
 
-  const withReminders = habits.filter((h) => h.reminderTime);
-
-  // Replace this user's stored habits with the current local set (simple sync).
-  // Delete cloud habits not present locally:
+  // Delete cloud habits no longer present locally
   const { data: existing } = await supabase.from("habits").select("id").eq("user_id", userId);
-  const localIds = new Set(withReminders.map((h) => h.id));
+  const localIds = new Set(habits.map((h) => h.id));
   const toDelete = (existing || []).filter((row: any) => !localIds.has(row.id)).map((row: any) => row.id);
   if (toDelete.length) await supabase.from("habits").delete().in("id", toDelete);
 
-  if (!withReminders.length) return;
+  if (!habits.length) return;
 
   await supabase.from("habits").upsert(
-    withReminders.map((h) => ({
+    habits.map((h) => ({
       id: h.id,
       user_id: userId,
       name: h.name,
       emoji: h.emoji || "🌱",
       category: h.category || null,
-      reminder_time: h.reminderTime,
+      reminder_time: h.reminderTime || null,
       goal_minutes: h.goalMinutes ?? null,
     })),
     { onConflict: "id" },

@@ -20,6 +20,10 @@ export type OutboxOp = {
   filter?: string; // e.g. "id=in.(a,b,c)" or "endpoint=eq.https://..."
 };
 
+type CompactedOutboxOp = OutboxOp & {
+  sourceIds: string[];
+};
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -105,6 +109,72 @@ export async function getLastSyncedAt(): Promise<number | null> {
   });
 }
 
+function compactOutbox(items: OutboxOp[]): CompactedOutboxOp[] {
+  const habitsPost = new Map<string, CompactedOutboxOp>();
+  const dayEntryPost = new Map<string, CompactedOutboxOp>();
+  const habitLogRows = new Map<string, { createdAt: number; row: any; sourceIds: string[] }>();
+  const passthrough: CompactedOutboxOp[] = [];
+
+  for (const item of items) {
+    if (item.table === "habits" && item.method === "POST") {
+      habitsPost.set("habits:all", { ...item, sourceIds: [...(habitsPost.get("habits:all")?.sourceIds || []), item.id] });
+      continue;
+    }
+
+    if (item.table === "day_entries" && item.method === "POST" && item.body?.user_id && item.body?.entry_date) {
+      const key = `${item.body.user_id}:${item.body.entry_date}`;
+      dayEntryPost.set(key, { ...item, sourceIds: [...(dayEntryPost.get(key)?.sourceIds || []), item.id] });
+      continue;
+    }
+
+    if (item.table === "habit_logs" && item.method === "POST" && item.body) {
+      const rows = Array.isArray(item.body) ? item.body : [item.body];
+      rows.forEach((row) => {
+        if (!row?.user_id || !row?.habit_id || !row?.log_date) return;
+        const key = `${row.user_id}:${row.habit_id}:${row.log_date}`;
+        const existing = habitLogRows.get(key);
+        habitLogRows.set(key, {
+          createdAt: item.createdAt,
+          row,
+          sourceIds: [...(existing?.sourceIds || []), item.id],
+        });
+      });
+      continue;
+    }
+
+    passthrough.push({ ...item, sourceIds: [item.id] });
+  }
+
+  const compactedLogsByDate = new Map<string, CompactedOutboxOp>();
+  habitLogRows.forEach(({ createdAt, row, sourceIds }) => {
+    const key = `${row.user_id}:${row.log_date}`;
+    const existing = compactedLogsByDate.get(key);
+    compactedLogsByDate.set(key, existing
+      ? {
+          ...existing,
+          createdAt: Math.max(existing.createdAt, createdAt),
+          body: [...(existing.body || []), row],
+          sourceIds: [...existing.sourceIds, ...sourceIds],
+        }
+      : {
+          id: `compact-${key}`,
+          createdAt,
+          table: "habit_logs",
+          method: "POST",
+          onConflict: "user_id,habit_id,log_date",
+          body: [row],
+          sourceIds: [...sourceIds],
+        });
+  });
+
+  return [
+    ...passthrough,
+    ...Array.from(habitsPost.values()),
+    ...Array.from(dayEntryPost.values()),
+    ...Array.from(compactedLogsByDate.values()),
+  ].sort((a, b) => a.createdAt - b.createdAt);
+}
+
 // ---------- Flushing ----------
 let flushing = false;
 
@@ -113,7 +183,8 @@ export async function flushOutbox(): Promise<{ flushed: number; remaining: numbe
   flushing = true;
   let flushed = 0;
   try {
-    const items = await listOutbox();
+    const queuedItems = await listOutbox();
+    const items = compactOutbox(queuedItems);
     if (!items.length) {
       await setLastSyncedAt(Date.now());
       return { flushed: 0, remaining: 0 };
@@ -136,7 +207,7 @@ export async function flushOutbox(): Promise<{ flushed: number; remaining: numbe
           res = await supabase.from("day_entries").upsert(op.body, { onConflict: op.onConflict || "user_id,entry_date" });
         }
         if (res && (res as any).error) throw (res as any).error;
-        await removeFromOutbox(op.id);
+        await Promise.all(op.sourceIds.map((id) => removeFromOutbox(id)));
         flushed++;
       } catch (err: any) {
         // Stop flushing on first persistent error to retry later

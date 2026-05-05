@@ -48,6 +48,7 @@ export interface TimeBlock {
   startTime: string; // "06:00"
   endTime: string;   // "07:00"
   description: string;
+  sourceHabitId?: string;
 }
 
 export interface WastedTimeEntry {

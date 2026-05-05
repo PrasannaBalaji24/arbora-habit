@@ -153,6 +153,7 @@ export default function Index() {
 
   const applyHabitTimeRangeToBlocks = (
     entry: DayEntry,
+    habitId: string,
     habitName: string,
     emoji: string,
     nextRange?: { from: string; to: string } | null,
@@ -161,8 +162,8 @@ export default function Index() {
     const habitLabel = `${emoji} ${habitName}`;
 
     blocks.forEach((block, index) => {
-      if (block.description === habitLabel) {
-        blocks[index] = { ...block, description: "" };
+      if (block.sourceHabitId === habitId || block.description === habitLabel) {
+        blocks[index] = { ...block, description: "", sourceHabitId: undefined };
       }
     });
 
@@ -170,7 +171,7 @@ export default function Index() {
 
     const indices = getBlocksInRange(blocks, nextRange.from, nextRange.to);
     indices.forEach((i) => {
-      blocks[i] = { ...blocks[i], description: habitLabel };
+      blocks[i] = { ...blocks[i], description: habitLabel, sourceHabitId: habitId };
     });
     return blocks;
   };
@@ -182,6 +183,7 @@ export default function Index() {
       const updatedBlocks = habit
         ? applyHabitTimeRangeToBlocks(
             dayEntry,
+            timeModal.habitId,
             habit.name,
             habit.emoji,
             minutes > 0 && fromTime && toTime ? { from: fromTime, to: toTime } : null,

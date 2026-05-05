@@ -28,17 +28,44 @@ const supabase = createClient(
   SERVICE_ROLE_KEY,
 );
 
-function isAuthorized(req: Request): boolean {
-  // Accept either an x-cron-secret header matching CRON_SECRET,
-  // or an Authorization: Bearer <service_role_key> header (used by pg_cron).
+let cachedVaultCronSecret: string | null = null;
+let cachedVaultCronSecretAt = 0;
+
+async function getVaultCronSecret(): Promise<string | null> {
+  // Cache for 60s to avoid hitting vault every minute
+  if (cachedVaultCronSecret && Date.now() - cachedVaultCronSecretAt < 60_000) {
+    return cachedVaultCronSecret;
+  }
+  try {
+    const { data, error } = await supabase
+      .schema("vault" as any)
+      .from("decrypted_secrets")
+      .select("decrypted_secret")
+      .eq("name", "CRON_SECRET")
+      .maybeSingle();
+    if (error) return null;
+    cachedVaultCronSecret = (data as any)?.decrypted_secret ?? null;
+    cachedVaultCronSecretAt = Date.now();
+    return cachedVaultCronSecret;
+  } catch {
+    return null;
+  }
+}
+
+async function isAuthorized(req: Request): Promise<boolean> {
   const headerSecret = req.headers.get("x-cron-secret");
-  if (CRON_SECRET && headerSecret && headerSecret === CRON_SECRET) return true;
+  const vaultSecret = await getVaultCronSecret();
+
+  if (headerSecret) {
+    if (CRON_SECRET && headerSecret === CRON_SECRET) return true;
+    if (vaultSecret && headerSecret === vaultSecret) return true;
+  }
 
   const auth = req.headers.get("authorization") || "";
   if (auth.startsWith("Bearer ")) {
     const token = auth.slice("Bearer ".length).trim();
-    if (token === SERVICE_ROLE_KEY) return true;
     if (CRON_SECRET && token === CRON_SECRET) return true;
+    if (vaultSecret && token === vaultSecret) return true;
   }
   return false;
 }
@@ -63,7 +90,7 @@ function localHHMM(timezone: string, now = new Date()): { hhmm: string; date: st
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  if (!isAuthorized(req)) {
+  if (!(await isAuthorized(req))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

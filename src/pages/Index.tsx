@@ -153,7 +153,6 @@ export default function Index() {
 
   const applyHabitTimeRangeToBlocks = (
     entry: DayEntry,
-    habitId: string,
     habitName: string,
     emoji: string,
     nextRange?: { from: string; to: string } | null,
@@ -170,7 +169,6 @@ export default function Index() {
     if (!nextRange) return blocks;
 
     const indices = getBlocksInRange(blocks, nextRange.from, nextRange.to);
-    const indices = getBlocksInRange(blocks, from, to);
     indices.forEach((i) => {
       blocks[i] = { ...blocks[i], description: habitLabel };
     });
@@ -184,7 +182,6 @@ export default function Index() {
       const updatedBlocks = habit
         ? applyHabitTimeRangeToBlocks(
             dayEntry,
-            timeModal.habitId,
             habit.name,
             habit.emoji,
             minutes > 0 && fromTime && toTime ? { from: fromTime, to: toTime } : null,

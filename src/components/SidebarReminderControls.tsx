@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, LogIn, LogOut, Loader2 } from "lucide-react";
+import { Bell, BellOff, BellRing, LogIn, LogOut, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import {
   isRemindersEnabled,
   remindersSupported,
   syncHabitsToServiceWorker,
+  sendTestNotification,
 } from "@/lib/local-reminders";
 import { getHabits } from "@/lib/habits";
 import {
@@ -90,6 +91,20 @@ export function SidebarReminderControls() {
           {!collapsed && <span>{enabled ? "Disable reminders" : "Enable reminders"}</span>}
         </SidebarMenuButton>
       </SidebarMenuItem>
+      {enabled && (
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={async () => {
+              await sendTestNotification();
+              toast({ title: "Test notification sent" });
+            }}
+            className="hover:bg-muted/50"
+          >
+            <BellRing className="mr-2 h-4 w-4" />
+            {!collapsed && <span>Send test notification</span>}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
       {user ? (
         <SidebarMenuItem>
           <SidebarMenuButton onClick={handleSignOut} className="hover:bg-muted/50">

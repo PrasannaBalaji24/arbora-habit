@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Habit, getDayLogs, getDayEntry, todayStr } from "@/lib/habits";
+import { syncHabitsToServiceWorker } from "@/lib/local-reminders";
 
 const FIRED_KEY = "habits-tracker-reminders-fired";
 
@@ -18,18 +19,21 @@ function setFired(habitId: string) {
 }
 
 /**
- * Schedules in-tab daily reminders for habits using the browser Notifications API.
- * Reminders only fire while the app/tab is open.
+ * In-tab fallback that fires daily reminders while the app is open. The
+ * service worker handles reminders when the tab is closed (where supported).
  */
 export function useHabitReminders(habits: Habit[]) {
   const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
-    // Clear previous timers
+    // Always push the latest habits to the SW so it can schedule background ones.
+    syncHabitsToServiceWorker(habits).catch(() => {});
+
+    // Clear previous in-tab timers
     timersRef.current.forEach((id) => window.clearTimeout(id));
     timersRef.current = [];
 
-    if (!("Notification" in window)) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
 
     const now = new Date();
     const today = todayStr();

@@ -144,5 +144,16 @@ export async function notifyHabitCompleted(habitId: string): Promise<void> {
 
 export async function sendTestNotification(): Promise<void> {
   const reg = await getActiveRegistration();
-  reg?.active?.postMessage({ type: "test-notification" });
+  if (!reg) return;
+  // Direct call is most reliable; also ping the SW for parity.
+  try {
+    await reg.showNotification("Arbora reminders are working ✨", {
+      body: "You'll see a notification at each habit's reminder time.",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: "arbora-test",
+    });
+  } catch {
+    reg.active?.postMessage({ type: "test-notification" });
+  }
 }

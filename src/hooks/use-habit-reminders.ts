@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Habit, getDayLogs, getDayEntry, todayStr } from "@/lib/habits";
-import { syncHabitsToServiceWorker } from "@/lib/local-reminders";
+import { syncHabitsToServiceWorker, getActiveRegistration } from "@/lib/local-reminders";
 
 const FIRED_KEY = "habits-tracker-reminders-fired";
 
@@ -16,6 +16,33 @@ function setFired(habitId: string) {
   const fired = getFiredToday();
   fired[habitId] = todayStr();
   localStorage.setItem(FIRED_KEY, JSON.stringify(fired));
+}
+
+async function fireNotification(habit: Habit) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const title = `${habit.emoji || "🌱"} Time for: ${habit.name}`;
+  const options: NotificationOptions = {
+    body: "Don't forget to log your habit today!",
+    tag: `habit-${habit.id}`,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+  };
+  // Prefer the service worker registration — `new Notification(...)` throws
+  // "Illegal constructor" on mobile Chrome / installed PWAs.
+  try {
+    const reg = await getActiveRegistration();
+    if (reg) {
+      await reg.showNotification(title, options);
+      return;
+    }
+  } catch {
+    // fall through to constructor as a last resort
+  }
+  try {
+    new Notification(title, options);
+  } catch {
+    // ignore — device doesn't allow direct construction
+  }
 }
 
 /**
@@ -50,19 +77,14 @@ export function useHabitReminders(habits: Habit[]) {
       if (diff <= 0) return; // already passed today
       if (fired[habit.id] === today) return;
 
-      const timerId = window.setTimeout(() => {
+      const timerId = window.setTimeout(async () => {
         // Skip if already completed today
         const dayLogs = getDayLogs();
         const entry = getDayEntry(dayLogs, todayStr());
         if (entry.habits?.[habit.id]?.completed) return;
 
-        if (Notification.permission === "granted") {
-          new Notification(`${habit.emoji} Time for: ${habit.name}`, {
-            body: "Don't forget to log your habit today!",
-            tag: `habit-${habit.id}`,
-          });
-          setFired(habit.id);
-        }
+        await fireNotification(habit);
+        setFired(habit.id);
       }, diff);
 
       timersRef.current.push(timerId);

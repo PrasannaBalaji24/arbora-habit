@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
-  AreaChart, Area, LineChart, Line,
+  AreaChart, Area,
 } from "recharts";
 import FancyPieChart, { PieDatum } from "@/components/charts/FancyPieChart";
 import { colorForHabitCategory, colorForWastedCategory } from "@/lib/chart-colors";

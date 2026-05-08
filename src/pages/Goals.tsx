@@ -12,6 +12,8 @@ import {
   PRIORITY_STYLES,
   STATUS_STYLES,
 } from "@/lib/goals";
+import { getUserId, pushGoalsToCloud, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
+import { useAuth } from "@/hooks/use-auth";
 import AddGoalDialog from "@/components/AddGoalDialog";
 import GoalDetailDialog from "@/components/GoalDetailDialog";
 import { Target, Calendar } from "lucide-react";
@@ -20,28 +22,51 @@ export default function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selected, setSelected] = useState<Goal | null>(null);
   const [filter, setFilter] = useState<"All" | "Active" | "Completed" | "Paused" | "Missed">("All");
+  const { user } = useAuth();
 
   useEffect(() => {
     setGoals(getGoals());
   }, []);
 
+  // When signed in, pull cloud goals and merge so this device sees others' goals.
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      const cloud = await pullGoalsFromCloud(uid);
+      const merged = mergeGoals(getGoals(), cloud);
+      saveGoals(merged);
+      setGoals(merged);
+    })().catch((e) => console.error("goals pull failed", e));
+  }, [user]);
+
   const refresh = () => setGoals(getGoals());
+
+  const syncCloud = (all: Goal[]) => {
+    getUserId().then((uid) => {
+      if (uid) pushGoalsToCloud(uid, all).catch((e) => console.error("goals push failed", e));
+    });
+  };
 
   const handleAdd = (g: Goal) => {
     const all = [...goals, g];
     saveGoals(all);
     setGoals(all);
+    syncCloud(all);
   };
 
   const handleSave = (g: Goal) => {
     upsertGoal(g);
     refresh();
     setSelected(g);
+    syncCloud(getGoals());
   };
 
   const handleDelete = (id: string) => {
     deleteGoal(id);
     refresh();
+    syncCloud(getGoals());
   };
 
   const visible = filter === "All" ? goals : goals.filter((g) => g.status === filter);

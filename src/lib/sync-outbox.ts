@@ -11,7 +11,7 @@ const META_STORE = "meta";
 export type OutboxOp = {
   id: string;
   createdAt: number;
-  table: "habits" | "habit_logs" | "day_entries";
+  table: "habits" | "habit_logs" | "day_entries" | "goals";
   method: "POST" | "DELETE";
   // For POST/upsert
   body?: any;

@@ -6,11 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
-import WeeklyReport from "./pages/WeeklyReport";
-import MonthlyReport from "./pages/MonthlyReport";
+import Reports from "./pages/Reports";
 import WastedTime from "./pages/WastedTime";
+import Goals from "./pages/Goals";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -36,8 +37,10 @@ const App = () => (
                     <main className="flex-1">
                       <Routes>
                         <Route path="/" element={<Index />} />
-                        <Route path="/weekly" element={<WeeklyReport />} />
-                        <Route path="/monthly" element={<MonthlyReport />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/goals" element={<Goals />} />
+                        <Route path="/weekly" element={<Navigate to="/reports" replace />} />
+                        <Route path="/monthly" element={<Navigate to="/reports" replace />} />
                         <Route path="/wasted" element={<WastedTime />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>

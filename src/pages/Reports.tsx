@@ -19,7 +19,9 @@ import {
   DayLogs,
   HabitLog,
 } from "@/lib/habits";
-import { getGoals, computeGoalProgress, Goal } from "@/lib/goals";
+import { getGoals, saveGoals, computeGoalProgress, Goal } from "@/lib/goals";
+import { getUserId, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -57,12 +59,26 @@ export default function Reports() {
   const [yearOffset, setYearOffset] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
 
+  const { user } = useAuth();
+
   useEffect(() => {
     setHabits(getHabits());
     setDayLogs(getDayLogs());
     setLogs(getLogs());
     setGoals(getGoals());
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      const cloud = await pullGoalsFromCloud(uid);
+      const merged = mergeGoals(getGoals(), cloud);
+      saveGoals(merged);
+      setGoals(merged);
+    })().catch((e) => console.error("goals pull failed", e));
+  }, [user]);
 
   // ---- Date range derivation ----
   const { dates, label, exportName } = useMemo(() => {

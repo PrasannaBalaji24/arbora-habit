@@ -259,6 +259,72 @@ export async function pushAllDayLogsToCloud(userId: string, dayLogs: DayLogs) {
   }
 }
 
+// ---------- GOALS ----------
+
+export async function pullGoalsFromCloud(userId: string): Promise<Goal[]> {
+  const { data, error } = await supabase.from("goals").select("*").eq("user_id", userId);
+  if (error) {
+    console.warn("pullGoalsFromCloud failed", error);
+    return [];
+  }
+  return (data || []).map((row: any) => ({ ...(row.data as Goal), id: row.id }));
+}
+
+export function mergeGoals(local: Goal[], cloud: Goal[]): Goal[] {
+  const map = new Map<string, Goal>();
+  for (const g of local) map.set(g.id, g);
+  for (const g of cloud) {
+    const existing = map.get(g.id);
+    if (!existing) {
+      map.set(g.id, g);
+      continue;
+    }
+    // Merge: prefer the one with more checkIns / milestones / progress
+    const merged: Goal = {
+      ...existing,
+      ...g,
+      progress: Math.max(existing.progress || 0, g.progress || 0),
+      milestones: g.milestones?.length >= existing.milestones?.length ? g.milestones : existing.milestones,
+      checkIns: (() => {
+        const byDate = new Map<string, any>();
+        [...(existing.checkIns || []), ...(g.checkIns || [])].forEach((c) => byDate.set(c.date, c));
+        return Array.from(byDate.values());
+      })(),
+      linkedHabitIds: Array.from(new Set([...(existing.linkedHabitIds || []), ...(g.linkedHabitIds || [])])),
+    };
+    map.set(g.id, merged);
+  }
+  return Array.from(map.values());
+}
+
+export async function pushGoalsToCloud(userId: string, goals: Goal[]) {
+  try {
+    const { data: existing } = await supabase.from("goals").select("id").eq("user_id", userId);
+    const localIds = new Set(goals.map((g) => g.id));
+    const toDelete = (existing || []).filter((r: any) => !localIds.has(r.id)).map((r: any) => r.id);
+    if (toDelete.length) {
+      const { error } = await supabase.from("goals").delete().in("id", toDelete);
+      if (error) throw error;
+    }
+    if (goals.length) {
+      const body = goals.map((g) => ({ id: g.id, user_id: userId, data: g as any }));
+      const { error } = await supabase.from("goals").upsert(body, { onConflict: "id" });
+      if (error) throw error;
+    }
+    await setLastSyncedAt(Date.now());
+  } catch (err) {
+    console.warn("pushGoalsToCloud failed, queuing", err);
+    if (goals.length) {
+      await enqueue({
+        table: "goals",
+        method: "POST",
+        onConflict: "id",
+        body: goals.map((g) => ({ id: g.id, user_id: userId, data: g as any })),
+      });
+    }
+  }
+}
+
 // ---------- INITIAL SYNC ----------
 // Called once after sign-in. Pulls cloud, merges with local, persists locally,
 // and pushes the merged data back so both devices converge.
@@ -266,6 +332,7 @@ export async function performInitialSync(): Promise<{
   habits: Habit[];
   logs: HabitLog;
   dayLogs: DayLogs;
+  goals: Goal[];
 } | null> {
   const userId = await getUserId();
   if (!userId) return null;
@@ -275,19 +342,26 @@ export async function performInitialSync(): Promise<{
     logs: getLogs(),
     dayLogs: getDayLogs(),
   };
-  const cloud = await pullFromCloud(userId);
+  const localGoals = getGoals();
+  const [cloud, cloudGoals] = await Promise.all([
+    pullFromCloud(userId),
+    pullGoalsFromCloud(userId),
+  ]);
   const merged = mergeData(local, cloud);
+  const mergedGoals = mergeGoals(localGoals, cloudGoals);
 
   // Save locally
   saveHabits(merged.habits);
   saveLogs(merged.logs);
   saveDayLogs(merged.dayLogs);
+  saveGoals(mergedGoals);
 
   // Push merged back
   await pushHabitsToCloud(userId, merged.habits);
   await pushAllDayLogsToCloud(userId, merged.dayLogs);
+  await pushGoalsToCloud(userId, mergedGoals);
 
-  return merged;
+  return { ...merged, goals: mergedGoals };
 }
 
 // Capture timezone in profile (idempotent)

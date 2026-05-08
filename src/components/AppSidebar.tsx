@@ -25,10 +25,14 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { dark, toggle } = useTheme();
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -52,6 +56,7 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
+                      onClick={handleNavClick}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >

@@ -205,6 +205,8 @@ export async function flushOutbox(): Promise<{ flushed: number; remaining: numbe
           res = await supabase.from("habit_logs").upsert(op.body, { onConflict: op.onConflict || "user_id,habit_id,log_date" });
         } else if (op.table === "day_entries" && op.method === "POST" && op.body) {
           res = await supabase.from("day_entries").upsert(op.body, { onConflict: op.onConflict || "user_id,entry_date" });
+        } else if (op.table === "goals" && op.method === "POST" && op.body) {
+          res = await supabase.from("goals").upsert(op.body, { onConflict: op.onConflict || "id" });
         }
         if (res && (res as any).error) throw (res as any).error;
         await Promise.all(op.sourceIds.map((id) => removeFromOutbox(id)));

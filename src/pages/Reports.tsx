@@ -19,7 +19,9 @@ import {
   DayLogs,
   HabitLog,
 } from "@/lib/habits";
-import { getGoals, computeGoalProgress, Goal } from "@/lib/goals";
+import { getGoals, saveGoals, computeGoalProgress, Goal } from "@/lib/goals";
+import { getUserId, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {

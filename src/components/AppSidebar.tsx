@@ -4,6 +4,9 @@ import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { SidebarReminderControls } from "@/components/SidebarReminderControls";
 import { SyncStatusIndicator } from "@/components/SyncStatusIndicator";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,

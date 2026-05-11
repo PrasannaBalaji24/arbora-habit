@@ -58,7 +58,7 @@ export async function subscribeToPush(): Promise<{ ok: boolean; reason?: string 
     try {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
       });
     } catch (e: any) {
       return { ok: false, reason: e?.message || "Failed to subscribe to push." };

@@ -80,6 +80,7 @@ export function AppSidebar() {
             <SidebarGroupLabel className="text-lg px-1 mb-4 justify-center">
               🌳
             </SidebarGroupLabel>
+          )}
           {!collapsed && firstName && (
             <div className="px-3 mb-3 text-sm">
               <span className="text-muted-foreground">Hi, </span>

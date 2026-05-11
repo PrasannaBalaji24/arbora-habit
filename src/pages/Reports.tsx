@@ -58,7 +58,7 @@ export default function Reports() {
   const [yearOffset, setYearOffset] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const { user } = useAuth();
+  
 
   useEffect(() => {
     setHabits(getHabits());

@@ -21,7 +21,7 @@ export default function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selected, setSelected] = useState<Goal | null>(null);
   const [filter, setFilter] = useState<"All" | "Active" | "Completed" | "Paused" | "Missed">("All");
-  const { user } = useAuth();
+  
 
   useEffect(() => {
     setGoals(getGoals());

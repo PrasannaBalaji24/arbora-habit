@@ -37,17 +37,16 @@ async function getVaultCronSecret(): Promise<string | null> {
     return cachedVaultCronSecret;
   }
   try {
-    const { data, error } = await supabase
-      .schema("vault" as any)
-      .from("decrypted_secrets")
-      .select("decrypted_secret")
-      .eq("name", "CRON_SECRET")
-      .maybeSingle();
-    if (error) return null;
-    cachedVaultCronSecret = (data as any)?.decrypted_secret ?? null;
+    const { data, error } = await supabase.rpc("get_cron_secret");
+    if (error) {
+      console.error("vault rpc error", error);
+      return null;
+    }
+    cachedVaultCronSecret = (data as string) ?? null;
     cachedVaultCronSecretAt = Date.now();
     return cachedVaultCronSecret;
-  } catch {
+  } catch (e) {
+    console.error("vault rpc throw", e);
     return null;
   }
 }

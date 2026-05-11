@@ -28,18 +28,9 @@ export default function Goals() {
     setGoals(getGoals());
   }, []);
 
-  // When signed in, pull cloud goals and merge so this device sees others' goals.
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
-      const cloud = await pullGoalsFromCloud(uid);
-      const merged = mergeGoals(getGoals(), cloud);
-      saveGoals(merged);
-      setGoals(merged);
-    })().catch((e) => console.error("goals pull failed", e));
-  }, [user]);
+  // Initial sign-in sync (performInitialSync) already pulls cloud goals into
+  // localStorage, so no per-mount pull is needed here.
+
 
   const refresh = () => setGoals(getGoals());
 

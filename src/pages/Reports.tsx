@@ -68,17 +68,8 @@ export default function Reports() {
     setGoals(getGoals());
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
-      const cloud = await pullGoalsFromCloud(uid);
-      const merged = mergeGoals(getGoals(), cloud);
-      saveGoals(merged);
-      setGoals(merged);
-    })().catch((e) => console.error("goals pull failed", e));
-  }, [user]);
+  // Cloud goals are pulled by the initial sign-in sync; no per-mount fetch.
+
 
   // ---- Date range derivation ----
   const { dates, label, exportName } = useMemo(() => {

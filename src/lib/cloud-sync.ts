@@ -373,3 +373,50 @@ export async function ensureProfileTimezone() {
     if (tz) await supabase.from("profiles").update({ timezone: tz }).eq("user_id", userId);
   } catch (_) {}
 }
+
+// ---------- DEBOUNCED PUSHERS ----------
+// Coalesce rapid consecutive edits into a single Supabase round-trip.
+const DEBOUNCE_MS = 1500;
+const habitsTimer: { id: ReturnType<typeof setTimeout> | null; pending: Habit[] | null; userId: string | null } = {
+  id: null, pending: null, userId: null,
+};
+export function pushHabitsToCloudDebounced(userId: string, habits: Habit[]) {
+  habitsTimer.pending = habits;
+  habitsTimer.userId = userId;
+  if (habitsTimer.id) clearTimeout(habitsTimer.id);
+  habitsTimer.id = setTimeout(() => {
+    const h = habitsTimer.pending;
+    const u = habitsTimer.userId;
+    habitsTimer.id = null; habitsTimer.pending = null;
+    if (h && u) pushHabitsToCloud(u, h).catch((e) => console.error("habit push failed", e));
+  }, DEBOUNCE_MS);
+}
+
+const dayTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const dayPending = new Map<string, { userId: string; entry: DayEntry }>();
+export function pushDayEntryToCloudDebounced(userId: string, date: string, entry: DayEntry) {
+  dayPending.set(date, { userId, entry });
+  const existing = dayTimers.get(date);
+  if (existing) clearTimeout(existing);
+  dayTimers.set(date, setTimeout(() => {
+    const item = dayPending.get(date);
+    dayTimers.delete(date); dayPending.delete(date);
+    if (item) pushDayEntryToCloud(item.userId, date, item.entry).catch((e) => console.error("day push failed", e));
+  }, DEBOUNCE_MS));
+}
+
+const goalsTimer: { id: ReturnType<typeof setTimeout> | null; pending: Goal[] | null; userId: string | null } = {
+  id: null, pending: null, userId: null,
+};
+export function pushGoalsToCloudDebounced(userId: string, goals: Goal[]) {
+  goalsTimer.pending = goals;
+  goalsTimer.userId = userId;
+  if (goalsTimer.id) clearTimeout(goalsTimer.id);
+  goalsTimer.id = setTimeout(() => {
+    const g = goalsTimer.pending;
+    const u = goalsTimer.userId;
+    goalsTimer.id = null; goalsTimer.pending = null;
+    if (g && u) pushGoalsToCloud(u, g).catch((e) => console.error("goals push failed", e));
+  }, DEBOUNCE_MS);
+}
+

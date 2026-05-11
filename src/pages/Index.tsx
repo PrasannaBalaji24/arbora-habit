@@ -33,8 +33,8 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   performInitialSync,
   ensureProfileTimezone,
-  pushHabitsToCloud,
-  pushDayEntryToCloud,
+  pushHabitsToCloudDebounced,
+  pushDayEntryToCloudDebounced,
   getUserId,
 } from "@/lib/cloud-sync";
 import { Button } from "@/components/ui/button";
@@ -98,9 +98,8 @@ export default function Index() {
   const updateHabits = useCallback((h: Habit[]) => {
     setHabits(h);
     saveHabits(h);
-    // Sync ALL habits to cloud (not just ones with reminders) so cross-device works.
     getUserId().then((uid) => {
-      if (uid) pushHabitsToCloud(uid, h).catch((e) => console.error("habit push failed", e));
+      if (uid) pushHabitsToCloudDebounced(uid, h);
     });
   }, []);
 
@@ -114,7 +113,7 @@ export default function Index() {
     saveDayLogs(dl);
     if (changedDate && dl[changedDate]) {
       getUserId().then((uid) => {
-        if (uid) pushDayEntryToCloud(uid, changedDate, dl[changedDate]).catch((e) => console.error("day push failed", e));
+        if (uid) pushDayEntryToCloudDebounced(uid, changedDate, dl[changedDate]);
       });
     }
   }, []);

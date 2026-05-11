@@ -12,7 +12,7 @@ import {
   PRIORITY_STYLES,
   STATUS_STYLES,
 } from "@/lib/goals";
-import { getUserId, pushGoalsToCloud, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
+import { getUserId, pushGoalsToCloudDebounced, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
 import { useAuth } from "@/hooks/use-auth";
 import AddGoalDialog from "@/components/AddGoalDialog";
 import GoalDetailDialog from "@/components/GoalDetailDialog";
@@ -45,7 +45,7 @@ export default function Goals() {
 
   const syncCloud = (all: Goal[]) => {
     getUserId().then((uid) => {
-      if (uid) pushGoalsToCloud(uid, all).catch((e) => console.error("goals push failed", e));
+      if (uid) pushGoalsToCloudDebounced(uid, all);
     });
   };
 

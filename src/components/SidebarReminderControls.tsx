@@ -11,6 +11,7 @@ import {
   syncHabitsToServiceWorker,
   sendTestNotification,
 } from "@/lib/local-reminders";
+import { subscribeToPush, unsubscribeFromPush, pushSupported } from "@/lib/push";
 import { getHabits } from "@/lib/habits";
 import {
   SidebarMenu,
@@ -45,6 +46,7 @@ export function SidebarReminderControls() {
     try {
       if (enabled) {
         await disableReminders();
+        await unsubscribeFromPush();
         setEnabled(false);
         toast({ title: "Reminders disabled" });
       } else {
@@ -56,8 +58,22 @@ export function SidebarReminderControls() {
             variant: "destructive",
           });
         } else {
-          // Push the latest habit list to the service worker so it can schedule.
           await syncHabitsToServiceWorker(getHabits());
+          // Also subscribe for true background push (fires when app is closed).
+          if (pushSupported() && user) {
+            const pushRes = await subscribeToPush();
+            if (!pushRes.ok) {
+              toast({
+                title: "Background push not enabled",
+                description: pushRes.reason || "Reminders will only fire while the app is open.",
+              });
+            }
+          } else if (!user) {
+            toast({
+              title: "Sign in for background reminders",
+              description: "Without sign-in, reminders only fire while the app is open.",
+            });
+          }
           setEnabled(true);
           toast({
             title: "Reminders enabled",

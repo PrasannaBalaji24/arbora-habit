@@ -256,8 +256,8 @@ export function installAutoFlush() {
     if (document.visibilityState === "visible") tryFlush();
   });
 
-  // Periodic retry
-  setInterval(tryFlush, 30_000);
+  // (Removed 30s polling — online/visibility/focus + SW background-sync are
+  // enough and avoid hammering Supabase when the tab is just sitting open.)
 
   // Listen for SW messages indicating background flush succeeded
   navigator.serviceWorker?.addEventListener("message", (e) => {

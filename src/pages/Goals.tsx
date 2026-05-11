@@ -12,8 +12,7 @@ import {
   PRIORITY_STYLES,
   STATUS_STYLES,
 } from "@/lib/goals";
-import { getUserId, pushGoalsToCloud, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
-import { useAuth } from "@/hooks/use-auth";
+import { getUserId, pushGoalsToCloudDebounced } from "@/lib/cloud-sync";
 import AddGoalDialog from "@/components/AddGoalDialog";
 import GoalDetailDialog from "@/components/GoalDetailDialog";
 import { Target, Calendar } from "lucide-react";
@@ -22,30 +21,21 @@ export default function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selected, setSelected] = useState<Goal | null>(null);
   const [filter, setFilter] = useState<"All" | "Active" | "Completed" | "Paused" | "Missed">("All");
-  const { user } = useAuth();
+  
 
   useEffect(() => {
     setGoals(getGoals());
   }, []);
 
-  // When signed in, pull cloud goals and merge so this device sees others' goals.
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
-      const cloud = await pullGoalsFromCloud(uid);
-      const merged = mergeGoals(getGoals(), cloud);
-      saveGoals(merged);
-      setGoals(merged);
-    })().catch((e) => console.error("goals pull failed", e));
-  }, [user]);
+  // Initial sign-in sync (performInitialSync) already pulls cloud goals into
+  // localStorage, so no per-mount pull is needed here.
+
 
   const refresh = () => setGoals(getGoals());
 
   const syncCloud = (all: Goal[]) => {
     getUserId().then((uid) => {
-      if (uid) pushGoalsToCloud(uid, all).catch((e) => console.error("goals push failed", e));
+      if (uid) pushGoalsToCloudDebounced(uid, all);
     });
   };
 

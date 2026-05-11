@@ -4,6 +4,9 @@ import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { SidebarReminderControls } from "@/components/SidebarReminderControls";
 import { SyncStatusIndicator } from "@/components/SyncStatusIndicator";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +32,36 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { dark, toggle } = useTheme();
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setDisplayName(null);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const name =
+          data?.display_name ||
+          (user.user_metadata as any)?.full_name ||
+          (user.user_metadata as any)?.name ||
+          user.email?.split("@")[0] ||
+          null;
+        setDisplayName(name);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const firstName = displayName?.split(/[\s@]/)[0];
 
   const handleNavClick = () => {
     if (isMobile) setOpenMobile(false);
@@ -47,6 +80,13 @@ export function AppSidebar() {
             <SidebarGroupLabel className="text-lg px-1 mb-4 justify-center">
               🌳
             </SidebarGroupLabel>
+          )}
+          {!collapsed && firstName && (
+            <div className="px-3 mb-3 text-sm">
+              <span className="text-muted-foreground">Hi, </span>
+              <span className="font-semibold text-foreground">{firstName}</span>
+              <span className="text-muted-foreground"> 👋</span>
+            </div>
           )}
           <SidebarGroupContent>
             <SidebarMenu>

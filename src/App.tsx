@@ -10,6 +10,7 @@ import Reports from "./pages/Reports";
 import WastedTime from "./pages/WastedTime";
 import Goals from "./pages/Goals";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { Navigate } from "react-router-dom";
 
@@ -23,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="*"
             element={

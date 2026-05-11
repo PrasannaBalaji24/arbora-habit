@@ -20,7 +20,7 @@ import {
   HabitLog,
 } from "@/lib/habits";
 import { getGoals, saveGoals, computeGoalProgress, Goal } from "@/lib/goals";
-import { getUserId } from "@/lib/cloud-sync";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {

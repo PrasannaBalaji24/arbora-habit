@@ -12,8 +12,7 @@ import {
   PRIORITY_STYLES,
   STATUS_STYLES,
 } from "@/lib/goals";
-import { getUserId, pushGoalsToCloudDebounced, pullGoalsFromCloud, mergeGoals } from "@/lib/cloud-sync";
-import { useAuth } from "@/hooks/use-auth";
+import { getUserId, pushGoalsToCloudDebounced } from "@/lib/cloud-sync";
 import AddGoalDialog from "@/components/AddGoalDialog";
 import GoalDetailDialog from "@/components/GoalDetailDialog";
 import { Target, Calendar } from "lucide-react";

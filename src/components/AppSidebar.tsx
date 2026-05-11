@@ -32,6 +32,36 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { dark, toggle } = useTheme();
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setDisplayName(null);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const name =
+          data?.display_name ||
+          (user.user_metadata as any)?.full_name ||
+          (user.user_metadata as any)?.name ||
+          user.email?.split("@")[0] ||
+          null;
+        setDisplayName(name);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const firstName = displayName?.split(/[\s@]/)[0];
 
   const handleNavClick = () => {
     if (isMobile) setOpenMobile(false);

@@ -28,6 +28,13 @@ export default function Auth() {
         });
         if (error) throw error;
         toast({ title: "Check your inbox", description: "Confirm your email to finish signing up." });
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({ title: "Reset link sent", description: "Check your inbox for instructions." });
+        setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

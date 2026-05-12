@@ -17,6 +17,7 @@ import {
   getEmptyDayEntry,
 } from "@/lib/habits";
 import { Goal, getGoals, saveGoals } from "@/lib/goals";
+import { Todo, getTodos, saveTodos } from "@/lib/todos";
 import { enqueue, setLastSyncedAt } from "@/lib/sync-outbox";
 
 export async function getUserId(): Promise<string | null> {

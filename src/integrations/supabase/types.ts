@@ -243,6 +243,45 @@ export type Database = {
           },
         ]
       }
+      todos: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          description: string | null
+          due_time: string | null
+          id: string
+          priority: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          description?: string | null
+          due_time?: string | null
+          id?: string
+          priority?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          description?: string | null
+          due_time?: string | null
+          id?: string
+          priority?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

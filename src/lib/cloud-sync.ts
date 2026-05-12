@@ -488,6 +488,21 @@ export function pushHabitsToCloudDebounced(userId: string, habits: Habit[]) {
   }, DEBOUNCE_MS);
 }
 
+const todosTimer: { id: ReturnType<typeof setTimeout> | null; pending: Todo[] | null; userId: string | null } = {
+  id: null, pending: null, userId: null,
+};
+export function pushTodosToCloudDebounced(userId: string, todos: Todo[]) {
+  todosTimer.pending = todos;
+  todosTimer.userId = userId;
+  if (todosTimer.id) clearTimeout(todosTimer.id);
+  todosTimer.id = setTimeout(() => {
+    const t = todosTimer.pending;
+    const u = todosTimer.userId;
+    todosTimer.id = null; todosTimer.pending = null;
+    if (t && u) pushTodosToCloud(u, t).catch((e) => console.error("todos push failed", e));
+  }, DEBOUNCE_MS);
+}
+
 const dayTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const dayPending = new Map<string, { userId: string; entry: DayEntry }>();
 export function pushDayEntryToCloudDebounced(userId: string, date: string, entry: DayEntry) {

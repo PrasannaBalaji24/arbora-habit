@@ -91,6 +91,7 @@ export function SidebarReminderControls() {
     clearAllUserData();
     await supabase.auth.signOut();
     toast({ title: "Signed out" });
+    window.location.reload();
   }
 
   if (loading) return null;

@@ -42,6 +42,7 @@ const App = () => (
                     <main className="flex-1 safe-x safe-bottom">
                       <Routes>
                         <Route path="/" element={<Index />} />
+                        <Route path="/todos" element={<Todos />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/goals" element={<Goals />} />
                         <Route path="/weekly" element={<Navigate to="/reports" replace />} />

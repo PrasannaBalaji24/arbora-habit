@@ -22,6 +22,7 @@ import {
 
 const items = [
   { title: "Daily Tracker", url: "/", icon: CalendarDays },
+  { title: "Daily To-Do", url: "/todos", icon: CheckSquare },
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Wasted Time", url: "/wasted", icon: Clock },

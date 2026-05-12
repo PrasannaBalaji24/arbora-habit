@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Reports from "./pages/Reports";
 import WastedTime from "./pages/WastedTime";
 import Goals from "./pages/Goals";
+import Todos from "./pages/Todos";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";

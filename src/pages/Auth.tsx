@@ -25,7 +25,10 @@ export default function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            data: { display_name: name },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         toast({ title: "Check your inbox", description: "Confirm your email to finish signing up." });

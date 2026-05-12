@@ -87,6 +87,8 @@ export function SidebarReminderControls() {
   }
 
   async function handleSignOut() {
+    const { clearAllUserData } = await import("@/lib/clear-data");
+    clearAllUserData();
     await supabase.auth.signOut();
     toast({ title: "Signed out" });
   }

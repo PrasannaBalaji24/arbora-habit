@@ -17,6 +17,7 @@ import {
   getEmptyDayEntry,
 } from "@/lib/habits";
 import { Goal, getGoals, saveGoals } from "@/lib/goals";
+import { Todo, getTodos, saveTodos } from "@/lib/todos";
 import { enqueue, setLastSyncedAt } from "@/lib/sync-outbox";
 
 export async function getUserId(): Promise<string | null> {
@@ -325,6 +326,94 @@ export async function pushGoalsToCloud(userId: string, goals: Goal[]) {
   }
 }
 
+// ---------- TODOS ----------
+
+export async function pullTodosFromCloud(userId: string): Promise<Todo[]> {
+  const { data, error } = await supabase.from("todos").select("*").eq("user_id", userId);
+  if (error) {
+    console.warn("pullTodosFromCloud failed", error);
+    return [];
+  }
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    description: row.description || undefined,
+    dueTime: row.due_time || undefined,
+    priority: row.priority || undefined,
+    completed: row.completed,
+    date: row.date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export function mergeTodos(local: Todo[], cloud: Todo[]): Todo[] {
+  const map = new Map<string, Todo>();
+  for (const t of local) map.set(t.id, t);
+  for (const t of cloud) {
+    const existing = map.get(t.id);
+    if (!existing) {
+      map.set(t.id, t);
+      continue;
+    }
+    // Merge: prefer cloud (which should represent the source of truth if timestamps were 100% reliable)
+    // Here we'll do a simple prefer-cloud if the updated_at is newer or just prefer cloud.
+    const eDate = new Date(existing.updatedAt || 0).getTime();
+    const cDate = new Date(t.updatedAt || 0).getTime();
+    if (cDate >= eDate) {
+      map.set(t.id, t);
+    }
+  }
+  return Array.from(map.values());
+}
+
+export async function pushTodosToCloud(userId: string, todos: Todo[]) {
+  try {
+    const { data: existing } = await supabase.from("todos").select("id").eq("user_id", userId);
+    const localIds = new Set(todos.map((t) => t.id));
+    const toDelete = (existing || []).filter((r: any) => !localIds.has(r.id)).map((r: any) => r.id);
+    if (toDelete.length) {
+      const { error } = await supabase.from("todos").delete().in("id", toDelete);
+      if (error) throw error;
+    }
+    if (todos.length) {
+      const body = todos.map((t) => ({
+        id: t.id,
+        user_id: userId,
+        title: t.title,
+        description: t.description || null,
+        due_time: t.dueTime || null,
+        priority: t.priority || null,
+        completed: t.completed,
+        date: t.date,
+      }));
+      const { error } = await supabase.from("todos").upsert(body, { onConflict: "id" });
+      if (error) throw error;
+    }
+    await setLastSyncedAt(Date.now());
+  } catch (err) {
+    console.warn("pushTodosToCloud failed, queuing", err);
+    if (todos.length) {
+      await enqueue({
+        table: "todos",
+        method: "POST",
+        onConflict: "id",
+        body: todos.map((t) => ({
+          id: t.id,
+          user_id: userId,
+          title: t.title,
+          description: t.description || null,
+          due_time: t.dueTime || null,
+          priority: t.priority || null,
+          completed: t.completed,
+          date: t.date,
+        })),
+      });
+    }
+  }
+}
+
 // ---------- INITIAL SYNC ----------
 // Called once after sign-in. Pulls cloud, merges with local, persists locally,
 // and pushes the merged data back so both devices converge.
@@ -333,6 +422,7 @@ export async function performInitialSync(): Promise<{
   logs: HabitLog;
   dayLogs: DayLogs;
   goals: Goal[];
+  todos: Todo[];
 } | null> {
   const userId = await getUserId();
   if (!userId) return null;
@@ -343,25 +433,31 @@ export async function performInitialSync(): Promise<{
     dayLogs: getDayLogs(),
   };
   const localGoals = getGoals();
-  const [cloud, cloudGoals] = await Promise.all([
+  const localTodos = getTodos();
+
+  const [cloud, cloudGoals, cloudTodos] = await Promise.all([
     pullFromCloud(userId),
     pullGoalsFromCloud(userId),
+    pullTodosFromCloud(userId),
   ]);
   const merged = mergeData(local, cloud);
   const mergedGoals = mergeGoals(localGoals, cloudGoals);
+  const mergedTodos = mergeTodos(localTodos, cloudTodos);
 
   // Save locally
   saveHabits(merged.habits);
   saveLogs(merged.logs);
   saveDayLogs(merged.dayLogs);
   saveGoals(mergedGoals);
+  saveTodos(mergedTodos);
 
   // Push merged back
   await pushHabitsToCloud(userId, merged.habits);
   await pushAllDayLogsToCloud(userId, merged.dayLogs);
   await pushGoalsToCloud(userId, mergedGoals);
+  await pushTodosToCloud(userId, mergedTodos);
 
-  return { ...merged, goals: mergedGoals };
+  return { ...merged, goals: mergedGoals, todos: mergedTodos };
 }
 
 // Capture timezone in profile (idempotent)
@@ -389,6 +485,21 @@ export function pushHabitsToCloudDebounced(userId: string, habits: Habit[]) {
     const u = habitsTimer.userId;
     habitsTimer.id = null; habitsTimer.pending = null;
     if (h && u) pushHabitsToCloud(u, h).catch((e) => console.error("habit push failed", e));
+  }, DEBOUNCE_MS);
+}
+
+const todosTimer: { id: ReturnType<typeof setTimeout> | null; pending: Todo[] | null; userId: string | null } = {
+  id: null, pending: null, userId: null,
+};
+export function pushTodosToCloudDebounced(userId: string, todos: Todo[]) {
+  todosTimer.pending = todos;
+  todosTimer.userId = userId;
+  if (todosTimer.id) clearTimeout(todosTimer.id);
+  todosTimer.id = setTimeout(() => {
+    const t = todosTimer.pending;
+    const u = todosTimer.userId;
+    todosTimer.id = null; todosTimer.pending = null;
+    if (t && u) pushTodosToCloud(u, t).catch((e) => console.error("todos push failed", e));
   }, DEBOUNCE_MS);
 }
 

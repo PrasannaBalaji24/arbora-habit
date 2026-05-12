@@ -1,4 +1,4 @@
-import { CalendarDays, BarChart3, Clock, Sun, Moon, Target } from "lucide-react";
+import { CalendarDays, BarChart3, Clock, Sun, Moon, Target, CheckSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
@@ -22,6 +22,7 @@ import {
 
 const items = [
   { title: "Daily Tracker", url: "/", icon: CalendarDays },
+  { title: "Daily To-Do", url: "/todos", icon: CheckSquare },
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Wasted Time", url: "/wasted", icon: Clock },

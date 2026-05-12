@@ -11,7 +11,7 @@ const META_STORE = "meta";
 export type OutboxOp = {
   id: string;
   createdAt: number;
-  table: "habits" | "habit_logs" | "day_entries" | "goals";
+  table: "habits" | "habit_logs" | "day_entries" | "goals" | "todos";
   method: "POST" | "DELETE";
   // For POST/upsert
   body?: any;
@@ -207,6 +207,8 @@ export async function flushOutbox(): Promise<{ flushed: number; remaining: numbe
           res = await supabase.from("day_entries").upsert(op.body, { onConflict: op.onConflict || "user_id,entry_date" });
         } else if (op.table === "goals" && op.method === "POST" && op.body) {
           res = await supabase.from("goals").upsert(op.body, { onConflict: op.onConflict || "id" });
+        } else if (op.table === "todos" && op.method === "POST" && op.body) {
+          res = await supabase.from("todos").upsert(op.body, { onConflict: op.onConflict || "id" });
         }
         if (res && (res as any).error) throw (res as any).error;
         await Promise.all(op.sourceIds.map((id) => removeFromOutbox(id)));

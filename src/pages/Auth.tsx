@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,7 +25,10 @@ export default function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            data: { display_name: name },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         toast({ title: "Check your inbox", description: "Confirm your email to finish signing up." });
@@ -90,6 +94,12 @@ export default function Auth() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

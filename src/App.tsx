@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Reports from "./pages/Reports";
 import WastedTime from "./pages/WastedTime";
 import Goals from "./pages/Goals";
+import Todos from "./pages/Todos";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,7 @@ const App = () => (
                     <main className="flex-1 safe-x safe-bottom">
                       <Routes>
                         <Route path="/" element={<Index />} />
+                        <Route path="/todos" element={<Todos />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/goals" element={<Goals />} />
                         <Route path="/weekly" element={<Navigate to="/reports" replace />} />

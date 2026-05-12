@@ -422,6 +422,7 @@ export async function performInitialSync(): Promise<{
   logs: HabitLog;
   dayLogs: DayLogs;
   goals: Goal[];
+  todos: Todo[];
 } | null> {
   const userId = await getUserId();
   if (!userId) return null;
@@ -432,25 +433,31 @@ export async function performInitialSync(): Promise<{
     dayLogs: getDayLogs(),
   };
   const localGoals = getGoals();
-  const [cloud, cloudGoals] = await Promise.all([
+  const localTodos = getTodos();
+
+  const [cloud, cloudGoals, cloudTodos] = await Promise.all([
     pullFromCloud(userId),
     pullGoalsFromCloud(userId),
+    pullTodosFromCloud(userId),
   ]);
   const merged = mergeData(local, cloud);
   const mergedGoals = mergeGoals(localGoals, cloudGoals);
+  const mergedTodos = mergeTodos(localTodos, cloudTodos);
 
   // Save locally
   saveHabits(merged.habits);
   saveLogs(merged.logs);
   saveDayLogs(merged.dayLogs);
   saveGoals(mergedGoals);
+  saveTodos(mergedTodos);
 
   // Push merged back
   await pushHabitsToCloud(userId, merged.habits);
   await pushAllDayLogsToCloud(userId, merged.dayLogs);
   await pushGoalsToCloud(userId, mergedGoals);
+  await pushTodosToCloud(userId, mergedTodos);
 
-  return { ...merged, goals: mergedGoals };
+  return { ...merged, goals: mergedGoals, todos: mergedTodos };
 }
 
 // Capture timezone in profile (idempotent)
